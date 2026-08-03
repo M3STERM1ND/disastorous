@@ -706,6 +706,14 @@ document.getElementById("myPostsList").addEventListener("click", function(e){
 supa.auth.getSession().then(function(res){ updateAuthUI(res.data && res.data.session); });
 supa.auth.onAuthStateChange(function(event, session){ updateAuthUI(session); });
 
+/* supabase-js's error shape varies by failure type, so .message isn't always populated
+   (e.g. a 500 from a failed confirmation-email send) — check a few fields before giving up. */
+function authErrMsg(err){
+  if(!err) return "Unknown error.";
+  return err.message || err.msg || err.error_description || err.error ||
+    ("Unknown error" + (err.status ? " (status " + err.status + ")" : "") + ".");
+}
+
 var authMode = "login";
 document.querySelectorAll(".auth-tab").forEach(function(t){
   t.onclick = function(){
@@ -731,13 +739,13 @@ document.getElementById("authSubmitBtn").onclick = function(){
     if(password !== confirmPw){ banner("Passwords don't match.", true); return; }
     btn.disabled = true; btn.textContent = "Creating…";
     supa.auth.signUp({ email: email, password: password }).then(function(res){
-      if(res.error){ banner("Couldn't create account: " + res.error.message, true); return; }
+      if(res.error){ banner("Couldn't create account: " + authErrMsg(res.error), true); return; }
       banner(res.data.session ? "Account created — you're signed in." : "Account created — check your email to confirm before logging in.", false);
     }).finally(function(){ btn.disabled = false; btn.textContent = "Create account"; });
   } else {
     btn.disabled = true; btn.textContent = "Logging in…";
     supa.auth.signInWithPassword({ email: email, password: password }).then(function(res){
-      if(res.error){ banner("Couldn't log in: " + res.error.message, true); return; }
+      if(res.error){ banner("Couldn't log in: " + authErrMsg(res.error), true); return; }
     }).finally(function(){ btn.disabled = false; btn.textContent = "Log in"; });
   }
 };
