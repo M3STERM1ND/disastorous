@@ -129,7 +129,13 @@ input:focus{border-color:var(--info);outline:none}
         <input type="text" id="endInput" placeholder="e.g. San Francisco, CA" autocomplete="off">
       </label>
       <button class="pill" id="goBtn">Find routes</button>
-      <p class="hint">We compute a fastest route, a lower-emission route (walking or cycling when the distance allows it), and a route chosen to stay as far as possible from real active hazards — all from free public routing &amp; hazard data.</p>
+      <p class="hint">We compute a fastest route, a lower-emission route (walking or cycling when the distance allows it), and a route chosen to stay as far as possible from real active hazards — all from free public routing &amp; hazard data. Tip: full names like "San Diego, CA" resolve more reliably than vague ones like "Downtown San Diego".</p>
+    </div>
+
+    <div class="panel-block" id="resolvedBlock" hidden>
+      <h2>Resolved to</h2>
+      <p class="hint" id="resolvedStart" style="margin-top:0"></p>
+      <p class="hint" id="resolvedEnd"></p>
     </div>
 
     <div class="tabs" id="tabs" hidden>
@@ -240,6 +246,8 @@ document.getElementById("swapBtn").onclick = function(){
   var tmp = a.value; a.value = b.value; b.value = tmp;
 };
 
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
 /* ---------------- geo helpers ---------------- */
 function toRad(d){ return d*Math.PI/180; }
 function haversineKm(lat1,lon1,lat2,lon2){
@@ -247,11 +255,22 @@ function haversineKm(lat1,lon1,lat2,lon2){
   var a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
   return 2*R*Math.asin(Math.sqrt(a));
 }
+/* Nominatim free-text search can silently match the wrong place (e.g. "Downtown San
+   Diego" matches a neighbourhood called "Downtown" in Escondido, 50km away, because
+   there's no single entity named exactly that). Asking for a few candidates and
+   preferring the highest "importance" score catches most of these; a low score on
+   even the best candidate means the match is genuinely weak, so that gets flagged
+   to the user instead of silently routing to the wrong place. */
 function geocode(q){
-  var url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q);
+  var url = "https://nominatim.openstreetmap.org/search?format=json&limit=5&q=" + encodeURIComponent(q);
   return fetch(url).then(function(r){ return r.json(); }).then(function(rows){
-    if(!rows.length) throw new Error("Couldn't find \"" + q + "\". Try a more specific name.");
-    return {lat:Number(rows[0].lat), lon:Number(rows[0].lon), label:rows[0].display_name};
+    if(!rows.length) throw new Error("Couldn't find \"" + q + "\". Try adding a state/country, e.g. \"" + q + ", CA\".");
+    rows.sort(function(a,b){ return Number(b.importance||0) - Number(a.importance||0); });
+    var best = rows[0];
+    return {
+      lat: Number(best.lat), lon: Number(best.lon), label: best.display_name,
+      weak: Number(best.importance || 0) < 0.15
+    };
   });
 }
 
@@ -340,10 +359,19 @@ function runPlan(){
   var btn = document.getElementById("goBtn");
   btn.disabled = true; btn.textContent = "Finding routes…";
   banner("Looking up both places…", false);
+  document.getElementById("resolvedBlock").hidden = true;
 
   var start, end, hazards;
   Promise.all([geocode(startQ), geocode(endQ)]).then(function(pts){
     start = pts[0]; end = pts[1];
+
+    document.getElementById("resolvedBlock").hidden = false;
+    document.getElementById("resolvedStart").innerHTML = "<b>Start:</b> " + escapeHtml(start.label) + (start.weak ? ' <span style="color:var(--danger)">— low-confidence match, check the map</span>' : "");
+    document.getElementById("resolvedEnd").innerHTML = "<b>End:</b> " + escapeHtml(end.label) + (end.weak ? ' <span style="color:var(--danger)">— low-confidence match, check the map</span>' : "");
+    if(start.weak || end.weak){
+      banner("One of these places matched with low confidence — double-check \"Resolved to\" in the panel before trusting the route.", true);
+    }
+
     banner("Fetching driving routes and checking hazard feeds…", false);
     return Promise.all([osrmRoute("driving", start, end, true), loadHazards()]);
   }).then(function(res){
