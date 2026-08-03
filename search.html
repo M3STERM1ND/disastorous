@@ -93,6 +93,9 @@ input[type=file]{width:100%;font-family:var(--f-mono);font-size:11px;margin-top:
 .post{padding:12px 18px;border-bottom:1px solid var(--hairline)}
 .post-head{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10px;color:var(--muted);margin-bottom:5px}
 .post-body{font-size:13px;line-height:1.4}
+.post-del{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--danger);background:none;border:1px solid var(--danger);padding:4px 9px;cursor:pointer;margin-top:8px}
+.post-del:hover{background:var(--danger);color:#fff}
+.post-del:disabled{opacity:.5;cursor:not-allowed}
 .post img{width:100%;border:1px solid var(--hairline);margin-top:8px;display:block}
 
 /* chat widget */
@@ -234,6 +237,11 @@ input[type=file]{width:100%;font-family:var(--f-mono);font-size:11px;margin-top:
       <button class="pill pill-go" id="reportSubmitBtn" style="width:100%" disabled>Post report</button>
       <p class="hint">Posts are public and show your account email. Don't post exact home addresses or anything you wouldn't want visible to everyone.</p>
     </div>
+
+    <div class="panel-block" id="myPostsHeader" hidden>
+      <h2>My reports (<span id="myPostsCount">0</span>)</h2>
+    </div>
+    <div id="myPostsList"></div>
 
     <div class="panel-block" id="postsHeader" hidden>
       <h2>Community reports (<span id="postsCount">0</span>)</h2>
@@ -628,11 +636,56 @@ function updateAuthUI(session){
   document.getElementById("authSignedOut").hidden = signedIn;
   document.getElementById("authSignedIn").hidden = !signedIn;
   document.getElementById("reportBlock").hidden = !signedIn;
+  document.getElementById("myPostsHeader").hidden = !signedIn;
   if(signedIn){
     document.getElementById("authEmailShown").textContent = session.user.email;
     requestMyLocation();
+    loadMyPosts(session.user.id);
+  } else {
+    document.getElementById("myPostsList").innerHTML = "";
   }
 }
+
+/* ---------------- my posts (view + delete) ---------------- */
+function loadMyPosts(userId){
+  supa.from("posts").select("*").eq("user_id", userId).order("created_at",{ascending:false})
+    .then(function(res){
+      if(res.error) return;
+      renderMyPosts(res.data || []);
+    });
+}
+function renderMyPosts(mine){
+  document.getElementById("myPostsCount").textContent = mine.length;
+  var wrap = document.getElementById("myPostsList");
+  if(!mine.length){ wrap.innerHTML = '<p class="empty">You haven\'t posted any reports yet.</p>'; return; }
+  wrap.innerHTML = "";
+  mine.forEach(function(p){
+    var el = document.createElement("div");
+    el.className = "post";
+    var when = new Date(p.created_at).toLocaleString();
+    el.innerHTML = '<div class="post-head"><span>' + when + '</span></div>' +
+      '<div class="post-body">' + escapeHtml(p.body) + '</div>' +
+      (p.image_url ? '<img src="' + p.image_url + '" alt="">' : "") +
+      '<br><button class="post-del" data-id="' + p.id + '">Delete</button>';
+    wrap.appendChild(el);
+  });
+}
+document.getElementById("myPostsList").addEventListener("click", function(e){
+  var btn = e.target.closest(".post-del");
+  if(!btn) return;
+  if(!confirm("Delete this report? This can't be undone.")) return;
+  var id = btn.dataset.id;
+  btn.disabled = true; btn.textContent = "Deleting…";
+  supa.from("posts").delete().eq("id", id).then(function(res){
+    if(res.error){ banner("Couldn't delete: " + res.error.message, true); btn.disabled = false; btn.textContent = "Delete"; return; }
+    banner("Report deleted.", false);
+    supa.auth.getSession().then(function(r){
+      var user = r.data && r.data.session && r.data.session.user;
+      if(user) loadMyPosts(user.id);
+    });
+    if(lastSearch) refreshNearbyPosts(lastSearch.place, lastSearch.radiusKm);
+  });
+});
 supa.auth.getSession().then(function(res){ updateAuthUI(res.data && res.data.session); });
 supa.auth.onAuthStateChange(function(event, session){ updateAuthUI(session); });
 
@@ -706,6 +759,7 @@ document.getElementById("reportSubmitBtn").onclick = function(){
       document.getElementById("reportBody").value = "";
       fileInput.value = "";
       banner("Report posted.", false);
+      loadMyPosts(user.id);
       if(lastSearch) refreshNearbyPosts(lastSearch.place, lastSearch.radiusKm);
     }).catch(function(err){
       banner(err.message || "Couldn't post that report.", true);
