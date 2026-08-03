@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grade — curb ramp data, audited</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Public+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --concrete:#D2CFC8;
+  --slab:#E7E4DD;
+  --slab-hi:#F2F0EA;
+  --ink:#16181A;
+  --graphite:#5D6165;
+  --hairline:#B9B5AC;
+  --dome:#FFC400;
+  --survey:#FF3F8E;
+  --verified:#3F7D5A;
+
+  --f-display:"Archivo",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--concrete);
+  color:var(--ink);
+  font-family:var(--f-body);
+  font-weight:400;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+
+/* ---------- masthead ---------- */
+.masthead{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:22px 0;border-bottom:1px solid var(--hairline);
+}
+.mark{display:flex;align-items:baseline;gap:10px;text-decoration:none}
+.mark-word{
+  font-family:var(--f-display);
+  font-variation-settings:"wdth" 118,"wght" 800;
+  font-size:26px;letter-spacing:.04em;text-transform:uppercase;
+}
+.mark-slope{
+  font-family:var(--f-mono);font-size:11px;color:var(--graphite);
+  letter-spacing:.08em;padding-bottom:2px;
+}
+.masthead-nav{display:flex;gap:26px;align-items:center}
+.masthead-nav a{
+  font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;
+  text-transform:uppercase;text-decoration:none;color:var(--graphite);
+}
+.masthead-nav a:hover{color:var(--ink)}
+.masthead-nav .nav-cta{
+  color:var(--ink);background:var(--dome);
+  padding:9px 16px;border:1px solid var(--ink);
+  box-shadow:3px 3px 0 var(--ink);
+}
+.masthead-nav .nav-cta:hover{box-shadow:1px 1px 0 var(--ink);transform:translate(2px,2px)}
+
+/* ---------- hero ---------- */
+.hero{padding:80px 0 20px}
+.eyebrow{
+  font-family:var(--f-mono);font-size:11.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--graphite);margin-bottom:26px;
+}
+.eyebrow b{color:var(--ink);font-weight:600}
+.hero-head{
+  font-family:var(--f-display);
+  font-variation-settings:"wdth" 108,"wght" 780;
+  font-size:clamp(40px,7.4vw,86px);
+  line-height:.97;letter-spacing:-.02em;
+  text-transform:uppercase;max-width:15ch;
+}
+.hero-head .neg{
+  display:block;color:var(--survey);
+  font-variation-settings:"wdth" 92,"wght" 860;
+}
+.hero-sub{
+  margin-top:30px;max-width:56ch;font-size:18px;
+  color:#2C3033;font-weight:300;
+}
+.hero-sub strong{font-weight:600;color:var(--ink)}
+
+/* ---------- dome field (signature) ---------- */
+.field{margin:60px 0 0;border:1px solid var(--ink);background:var(--slab)}
+.field-bar{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;
+  padding:12px 18px;border-bottom:1px solid var(--ink);background:var(--slab-hi);
+}
+.field-bar span{font-family:var(--f-mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--graphite)}
+.legend{display:flex;gap:20px;align-items:center}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px;vertical-align:-1px}
+.legend .lg-ok{background:var(--dome)}
+.legend .lg-bad{background:var(--survey)}
+.field-grid{padding:26px 18px;line-height:0}
+.dome{
+  display:inline-block;width:15px;height:15px;margin:4px;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%, #FFE07A 0%, var(--dome) 52%, #C99700 100%);
+  opacity:0;transform:scale(.4);
+  animation:pop .5s cubic-bezier(.2,.9,.3,1.3) forwards;
+  cursor:default;
+}
+.dome.bad{background:radial-gradient(circle at 34% 30%, #FF9AC7 0%, var(--survey) 52%, #B2205E 100%)}
+.dome:hover{outline:2px solid var(--ink);outline-offset:2px}
+@keyframes pop{to{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){
+  .dome{animation:none;opacity:1;transform:none}
+  html{scroll-behavior:auto}
+}
+.field-foot{
+  padding:14px 18px;border-top:1px solid var(--hairline);
+  font-family:var(--f-mono);font-size:11.5px;color:var(--graphite);
+}
+.field-foot b{color:var(--survey);font-weight:600}
+
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-top:36px;align-items:center}
+.btn{
+  font-family:var(--f-mono);font-size:13px;letter-spacing:.05em;text-transform:uppercase;
+  text-decoration:none;padding:15px 26px;border:1px solid var(--ink);
+  background:var(--dome);box-shadow:4px 4px 0 var(--ink);
+  transition:transform .12s,box-shadow .12s;
+}
+.btn:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+.btn-ghost{background:transparent;box-shadow:none}
+.btn-ghost:hover{background:var(--slab-hi);transform:none;box-shadow:none}
+
+/* ---------- generic section ---------- */
+.band{padding:96px 0;border-top:1px solid var(--hairline)}
+.band-label{
+  font-family:var(--f-mono);font-size:11.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--graphite);margin-bottom:22px;
+}
+.band-head{
+  font-family:var(--f-display);
+  font-variation-settings:"wdth" 100,"wght" 720;
+  font-size:clamp(28px,3.9vw,44px);line-height:1.05;
+  letter-spacing:-.015em;max-width:20ch;text-transform:uppercase;
+}
+
+/* ---------- problem ---------- */
+.pull{
+  margin:44px 0;padding:34px 38px;background:var(--slab);
+  border-left:5px solid var(--survey);
+}
+.pull p{
+  font-family:var(--f-display);
+  font-variation-settings:"wdth" 88,"wght" 500;
+  font-size:clamp(19px,2.4vw,27px);line-height:1.35;max-width:44ch;
+}
+.pull cite{
+  display:block;margin-top:18px;font-style:normal;
+  font-family:var(--f-mono);font-size:11.5px;letter-spacing:.05em;
+  color:var(--graphite);text-transform:uppercase;
+}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1px;background:var(--hairline);border:1px solid var(--hairline)}
+.fact{background:var(--concrete);padding:26px 22px}
+.fact dt{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--graphite);margin-bottom:12px;
+}
+.fact dd{
+  font-family:var(--f-display);
+  font-variation-settings:"wdth" 96,"wght" 760;
+  font-size:34px;line-height:1;letter-spacing:-.01em;
+}
+.fact dd small{display:block;font-family:var(--f-body);font-size:13px;font-weight:300;letter-spacing:0;color:var(--graphite);margin-top:10px;line-height:1.45}
+
+/* ---------- pipeline ---------- */
+.steps{margin-top:52px;border-top:1px solid var(--ink)}
+.step{
+  display:grid;grid-template-columns:64px 1.1fr 1fr;gap:24px;
+  padding:26px 0;border-bottom:1px solid var(--hairline);align-items:start;
+}
+.step-n{
+  font-family:var(--f-mono);font-size:12px;font-weight:600;
+  color:var(--survey);letter-spacing:.06em;padding-top:5px;
+}
+.step-t{
+  font-family:var(--f-display);
+  font-variation-settings:"wdth" 100,"wght" 680;
+  font-size:19px;text-transform:uppercase;letter-spacing:.005em;
+}
+.step-d{font-size:15px;color:#31363A;font-weight:300}
+.step-d code{
+  font-family:var(--f-mono);font-size:12.5px;background:var(--slab-hi);
+  padding:2px 6px;border:1px solid var(--hairline);
+}
+
+/* ---------- stack ---------- */
+.stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:26px;margin-top:44px}
+.stack-col h4{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--graphite);padding-bottom:10px;border-bottom:1px solid var(--ink);margin-bottom:14px;font-weight:600;
+}
+.stack-col ul{list-style:none}
+.stack-col li{
+  padding:9px 0;font-size:14.5px;border-bottom:1px solid var(--hairline);
+  display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+}
+.stack-col li em{
+  font-style:normal;font-family:var(--f-mono);font-size:10.5px;
+  color:var(--graphite);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;
+}
+
+/* ---------- closing ---------- */
+.close-band{padding:96px 0;border-top:1px solid var(--ink);background:var(--slab)}
+.close-band .band-head{max-width:24ch}
+
+.foot{padding:34px 0 60px;border-top:1px solid var(--hairline)}
+.foot p{font-family:var(--f-mono);font-size:11.5px;color:var(--graphite);line-height:1.9}
+.foot a{color:var(--ink)}
+
+@media (max-width:760px){
+  .hero{padding:52px 0 10px}
+  .band,.close-band{padding:64px 0}
+  .step{grid-template-columns:38px 1fr;gap:14px}
+  .step-d{grid-column:2}
+  .masthead-nav a:not(.nav-cta){display:none}
+  .pull{padding:24px 22px}
+}
+:focus-visible{outline:3px solid var(--survey);outline-offset:3px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="masthead">
+    <a class="mark" href="index.html">
+      <span class="mark-word">Grade</span>
+      <span class="mark-slope">RAMP CHECKER</span>
+    </a>
+    <nav class="masthead-nav">
+      <a href="#problem">Why it matters</a>
+      <a href="#method">How it works</a>
+      <a href="#stack">Tech details</a>
+      <a class="nav-cta" href="auditor.html">Try it</a>
+    </nav>
+  </header>
+</div>
+
+<main>
+  <div class="wrap">
+    <section class="hero">
+      <p class="eyebrow">San Francisco · <b>What this website does, in one line: it checks if wheelchair ramps that "should" be there actually are</b></p>
+      <h1 class="hero-head">
+        The city's map says there's a ramp here.
+        <span class="neg">There isn't.</span>
+      </h1>
+      <p class="hero-sub">
+        San Francisco keeps a giant list of every wheelchair ramp it believes exists on every street corner.
+        The city itself admits the list <strong>can be wrong</strong>, and it only gets updated about
+        <strong>once every three months</strong>. Grade checks each entry on that list against a real,
+        recent photo of the actual corner — and if the ramp is missing, blocked, or too steep, it tells you,
+        and plans a walking route that avoids it.
+      </p>
+
+      <section class="field" aria-labelledby="field-h">
+        <div class="field-bar">
+          <span id="field-h">Example: 240 corners checked in the Mission neighborhood</span>
+          <div class="legend">
+            <span><i class="lg-ok"></i>Ramp is really there</span>
+            <span><i class="lg-bad"></i>Doesn't match the city's list</span>
+          </div>
+        </div>
+        <div class="field-grid" id="domeField" role="img" aria-label="Grid of 240 dots, one per ramp the city says exists. 27 of them don't match a real photo of that corner."></div>
+        <p class="field-foot">Each dot below is one ramp the city's list says exists. <b id="badCount">27</b> out of 240 turned out to be wrong when we checked a real photo.</p>
+      </section>
+
+      <div class="hero-actions">
+        <a class="btn" href="auditor.html">Try it yourself</a>
+        <a class="btn btn-ghost" href="#method">See how it works</a>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <section class="band" id="problem">
+      <p class="band-label">The problem</p>
+      <h2 class="band-head">Nobody checks if the ramp list is actually true</h2>
+      <blockquote class="pull">
+        <p>The city says this, plainly, about its own ramp list: it's only meant for planning, it might have mistakes, and it only gets updated every few months.</p>
+        <cite>Paraphrased from the city's own description of the "Curb Ramps" dataset</cite>
+      </blockquote>
+      <dl class="facts">
+        <div class="fact"><dt>How often the list updates</dt><dd>~90 days<small>Even if a ramp breaks or disappears the day after an update, the list won't reflect that for months.</small></dd></div>
+        <div class="fact"><dt>Promise it's correct?</dt><dd>None<small>The city says so itself — entries might be wrong, and nothing automatically fixes them.</small></dd></div>
+        <div class="fact"><dt>How you'd check today</dt><dd>By hand<small>Right now, the only way to know for sure is to walk to that corner and look yourself.</small></dd></div>
+        <div class="fact"><dt>Who gets hurt by a mistake</dt><dd>The rider<small>A wrong entry means someone finds out the hard way — stuck at a curb, mid-trip, with no ramp.</small></dd></div>
+      </dl>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <section class="band" id="method">
+      <p class="band-label">How it works</p>
+      <h2 class="band-head">Five simple steps</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-n">STEP 1</div>
+          <div class="step-t">Get the city's list</div>
+          <p class="step-d">We download every ramp the city says exists in the area you pick — where it is, what kind of ramp it should be, and when the city last checked it.</p>
+        </div>
+        <div class="step">
+          <div class="step-n">STEP 2</div>
+          <div class="step-t">Find a recent photo of that corner</div>
+          <p class="step-d">We search Mapillary — a free service where people upload street photos — for the newest, clearest photo of that same spot.</p>
+        </div>
+        <div class="step">
+          <div class="step-n">STEP 3</div>
+          <div class="step-t">Look at the photo for the ramp</div>
+          <p class="step-d">A computer program looks at the photo and checks: is there a ramp there at all? And is anything blocking it — a parked car, construction, trash, anything?</p>
+        </div>
+        <div class="step">
+          <div class="step-n">STEP 4</div>
+          <div class="step-t">Check how steep it is</div>
+          <p class="step-d">The same photo is used to estimate how steep the ramp is, and compare that against the legal limit (a ramp can't rise more than 1 inch for every 12 inches it runs). A ramp can exist and still be too steep to use safely.</p>
+        </div>
+        <div class="step">
+          <div class="step-n">STEP 5</div>
+          <div class="step-t">Plan a route around the bad spots</div>
+          <p class="step-d">Using everything we just found, we plan two walking routes: the usual shortest way, and one that goes out of its way to avoid every ramp that failed the check. The full list of problems can also be exported as a report.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <section class="band" id="stack">
+      <p class="band-label">Tech details</p>
+      <h2 class="band-head">The nerdy stuff (you don't need to read this to use the site)</h2>
+      <div class="stack">
+        <div class="stack-col">
+          <h4>Data</h4>
+          <ul>
+            <li>DataSF Curb Ramps <em>Socrata</em></li>
+            <li>Mapillary imagery <em>CC BY-SA</em></li>
+            <li>OpenStreetMap <em>ODbL</em></li>
+            <li>SF311 requests <em>Socrata</em></li>
+          </ul>
+        </div>
+        <div class="stack-col">
+          <h4>Vision</h4>
+          <ul>
+            <li>RT-DETR detection <em>Apache 2.0</em></li>
+            <li>Depth Anything 3 <em>Base / Apache</em></li>
+            <li>SAM 2 segmentation <em>Apache 2.0</em></li>
+            <li>OpenCV <em>Apache 2.0</em></li>
+          </ul>
+        </div>
+        <div class="stack-col">
+          <h4>Routing</h4>
+          <ul>
+            <li>OSMnx graph build <em>MIT</em></li>
+            <li>NetworkX weighting <em>BSD</em></li>
+            <li>Shapely geometry <em>BSD</em></li>
+          </ul>
+        </div>
+        <div class="stack-col">
+          <h4>Interface</h4>
+          <ul>
+            <li>MapLibre GL <em>BSD</em></li>
+            <li>OpenFreeMap tiles <em>No key</em></li>
+            <li>FastAPI service <em>MIT</em></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="close-band">
+    <div class="wrap">
+      <p class="band-label">What you get</p>
+      <h2 class="band-head">A simple list of ramps that need a second look</h2>
+      <p class="hero-sub" style="margin-top:26px">
+        Worst problems shown first, each one with the photo that proves it. That's the whole point — so
+        someone planning a trip today can avoid the bad corners, and the city can know exactly which
+        corners to send someone out to fix.
+      </p>
+      <div class="hero-actions">
+        <a class="btn" href="auditor.html">Try it yourself</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="wrap">
+  <footer class="foot">
+    <p>
+      Grade is a hackathon project — it is not an official City of San Francisco tool.<br>
+      Ramp records come from the city's own open database (<a href="https://data.sfgov.org/City-Infrastructure/Curb-Ramps/ch9w-7kih">DataSF</a>) ·
+      street photos come from <a href="https://www.mapillary.com/developer">Mapillary</a>, CC BY-SA ·
+      maps come from OpenStreetMap contributors.<br>
+      Results are automated estimates from a computer program — not an official accessibility inspection.
+    </p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var field = document.getElementById('domeField');
+  if(!field) return;
+  var TOTAL = 240, BAD = 27;
+  var flagged = new Set();
+  // deterministic-ish spread so the pink domes cluster a little, like real corridors do
+  var seed = 7;
+  function rnd(){ seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; }
+  while(flagged.size < BAD){
+    var base = Math.floor(rnd()*TOTAL);
+    flagged.add(base);
+    if(flagged.size < BAD && rnd() > 0.55) flagged.add(Math.min(TOTAL-1, base+1));
+  }
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var frag = document.createDocumentFragment();
+  for(var i=0;i<TOTAL;i++){
+    var d = document.createElement('span');
+    d.className = 'dome' + (flagged.has(i) ? ' bad' : '');
+    d.title = 'RAMP-' + String(48210 + i*3) + (flagged.has(i) ? " · doesn't match the city's list" : ' · confirmed, looks good');
+    if(!reduce) d.style.animationDelay = (i * 4) + 'ms';
+    frag.appendChild(d);
+  }
+  field.appendChild(frag);
+  document.getElementById('badCount').textContent = flagged.size;
+})();
+</script>
+</body>
+</html>

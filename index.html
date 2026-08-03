@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disastorous — how dangerous is it, really?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Public+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F1F0EA; --surface:#FFFFFF; --surface-hi:#F8F7F3;
+  --ink:#14161A; --muted:#5B6066; --hairline:#D6D2C7;
+  --safe:#1E8E5A; --info:#3B6FE0; --danger:#D93025;
+  --f-display:"Archivo",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#111316; --surface:#1B1E22; --surface-hi:#22262B;
+    --ink:#F0EFEA; --muted:#9BA1A8; --hairline:#2C3036;
+    --safe:#2FA968; --info:#5B8DEF; --danger:#E4483A;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+
+.masthead{display:flex;align-items:center;justify-content:space-between;padding:22px 0;border-bottom:1px solid var(--hairline)}
+.mark{display:flex;align-items:baseline;gap:10px;text-decoration:none}
+.mark-word{font-family:var(--f-display);font-variation-settings:"wdth" 118,"wght" 800;font-size:26px;letter-spacing:.04em;text-transform:uppercase}
+.mark-word .dot{color:var(--danger)}
+.mark-tag{font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.08em;padding-bottom:2px}
+.nav{display:flex;gap:26px;align-items:center}
+.nav a{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;color:var(--muted)}
+.nav a:hover{color:var(--ink)}
+.nav .cta{color:#fff;background:var(--info);padding:9px 16px;border:1px solid var(--info);box-shadow:3px 3px 0 var(--ink)}
+.nav .cta:hover{box-shadow:1px 1px 0 var(--ink);transform:translate(2px,2px)}
+
+.hero{padding:80px 0 20px}
+.eyebrow{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:26px}
+.eyebrow b{color:var(--ink);font-weight:600}
+.hero-head{font-family:var(--f-display);font-variation-settings:"wdth" 108,"wght" 780;font-size:clamp(38px,7vw,80px);line-height:.98;letter-spacing:-.02em;text-transform:uppercase;max-width:17ch}
+.hero-head .accent{color:var(--danger)}
+.hero-sub{margin-top:28px;max-width:58ch;font-size:18px;color:var(--muted);font-weight:300}
+.hero-sub strong{font-weight:600;color:var(--ink)}
+.hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-top:40px}
+.btn{font-family:var(--f-mono);font-size:13px;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;padding:15px 26px;border:1px solid var(--ink);background:var(--info);color:#fff;box-shadow:4px 4px 0 var(--ink);transition:transform .12s,box-shadow .12s}
+.btn:hover{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--ink)}
+.btn-ghost{background:transparent;color:var(--ink);box-shadow:none}
+.btn-ghost:hover{background:var(--surface-hi);transform:none;box-shadow:none}
+.btn-danger{background:var(--danger);border-color:var(--danger)}
+.btn-safe{background:var(--safe);border-color:var(--safe)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1px;background:var(--hairline);border:1px solid var(--hairline);margin-top:70px}
+.card{background:var(--surface);padding:34px 30px;display:flex;flex-direction:column;gap:16px}
+.card .badge{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#fff;padding:5px 10px;width:fit-content}
+.card.local .badge{background:var(--info)}
+.card.global .badge{background:var(--danger)}
+.card.route .badge{background:var(--safe)}
+.card h3{font-family:var(--f-display);font-variation-settings:"wdth" 100,"wght" 740;font-size:24px;text-transform:uppercase}
+.card p{font-size:15px;color:var(--muted);font-weight:300}
+.card .go{margin-top:auto;font-family:var(--f-mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;color:var(--ink);border-bottom:2px solid currentColor;width:fit-content;padding-bottom:2px}
+
+.band{padding:96px 0;border-top:1px solid var(--hairline)}
+.band-label{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:22px}
+.band-head{font-family:var(--f-display);font-variation-settings:"wdth" 100,"wght" 720;font-size:clamp(26px,3.6vw,40px);line-height:1.08;letter-spacing:-.01em;max-width:22ch;text-transform:uppercase}
+
+.steps{margin-top:48px;border-top:1px solid var(--ink)}
+.step{display:grid;grid-template-columns:60px 1.1fr 1fr;gap:24px;padding:24px 0;border-bottom:1px solid var(--hairline);align-items:start}
+.step-n{font-family:var(--f-mono);font-size:12px;font-weight:600;letter-spacing:.06em;padding-top:4px}
+.step:nth-child(1) .step-n{color:var(--info)}
+.step:nth-child(2) .step-n{color:var(--info)}
+.step:nth-child(3) .step-n{color:var(--danger)}
+.step:nth-child(4) .step-n{color:var(--safe)}
+.step-t{font-family:var(--f-display);font-variation-settings:"wdth" 100,"wght" 680;font-size:18px;text-transform:uppercase}
+.step-d{font-size:14.5px;color:var(--muted);font-weight:300}
+
+.meter-demo{margin-top:56px;border:1px solid var(--ink);background:var(--surface)}
+.meter-demo-bar{display:flex;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--ink);background:var(--surface-hi);font-family:var(--f-mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.meter-demo-body{padding:26px 22px;display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+.meter{flex:1;min-width:220px;height:14px;background:var(--surface-hi);border:1px solid var(--hairline);position:relative;overflow:hidden}
+.meter i{position:absolute;inset:0;width:34%;background:linear-gradient(90deg,var(--safe),var(--info) 70%,var(--danger))}
+.meter-labels{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10px;color:var(--muted);margin-top:6px;text-transform:uppercase}
+.meter-score{font-family:var(--f-display);font-variation-settings:"wdth" 96,"wght" 780;font-size:40px;color:var(--info)}
+.meter-score small{display:block;font-family:var(--f-mono);font-size:10.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:4px}
+
+.disclaimer{margin:44px 0 0;padding:22px 26px;background:var(--surface);border-left:5px solid var(--danger);font-size:14px;color:var(--muted)}
+.disclaimer b{color:var(--ink)}
+
+.foot{padding:34px 0 60px;border-top:1px solid var(--hairline)}
+.foot p{font-family:var(--f-mono);font-size:11px;color:var(--muted);line-height:1.9}
+.foot a{color:var(--ink)}
+
+@media (max-width:760px){
+  .hero{padding:52px 0 10px}
+  .band{padding:60px 0}
+  .step{grid-template-columns:34px 1fr;gap:12px}
+  .step-d{grid-column:2}
+  .nav a:not(.cta){display:none}
+}
+:focus-visible{outline:3px solid var(--info);outline-offset:3px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="masthead">
+    <a class="mark" href="index.html">
+      <span class="mark-word">Disastorous<span class="dot">.</span></span>
+      <span class="mark-tag">LIVE RISK MAP</span>
+    </a>
+    <nav class="nav">
+      <a href="search.html">Local search</a>
+      <a href="global.html">Global view</a>
+      <a href="route.html">Route planner</a>
+      <a class="cta" href="search.html">Check a city</a>
+    </nav>
+  </header>
+</div>
+
+<main>
+  <div class="wrap">
+    <section class="hero">
+      <p class="eyebrow">Real news + real disaster feeds · <b>no login, no paywall, free public data</b></p>
+      <h1 class="hero-head">How dangerous is it, <span class="accent">really</span>?</h1>
+      <p class="hero-sub">
+        Type in a city, pick a radius, and Disastorous scans recent news for disasters and crime
+        near that spot, checks live wildfire/storm/earthquake feeds, and turns it all into a single
+        <strong>danger score out of 100</strong> — with a link to every article and event behind it,
+        so you never have to just take our word for it.
+      </p>
+      <div class="hero-actions">
+        <a class="btn" href="search.html">Check a city →</a>
+        <a class="btn btn-ghost" href="global.html">See the whole planet</a>
+      </div>
+
+      <div class="meter-demo">
+        <div class="meter-demo-bar"><span>Example score</span><span>Mission District, San Francisco</span></div>
+        <div class="meter-demo-body">
+          <div class="meter-score">34<small>out of 100</small></div>
+          <div style="flex:1;min-width:220px">
+            <div class="meter"><i></i></div>
+            <div class="meter-labels"><span>0 · calm</span><span>50 · moderate</span><span>100 · high risk</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <section class="cards" aria-label="Two tools">
+      <div class="card local">
+        <span class="badge">Tool 1</span>
+        <h3>Local danger search</h3>
+        <p>Enter any city and a radius (5–100 km). Get a danger score built from real news about disasters
+          and crime nearby, plus any confirmed live hazards — every source linked, nothing hidden.</p>
+        <a class="go" href="search.html">Search a city →</a>
+      </div>
+      <div class="card global">
+        <span class="badge">Tool 2</span>
+        <h3>Global danger view</h3>
+        <p>A live world map of every active wildfire, storm, volcano, flood, and major earthquake happening
+          right now, with an overall read on how calm or chaotic the planet is today.</p>
+        <a class="go" href="global.html">See the world map →</a>
+      </div>
+      <div class="card route">
+        <span class="badge">Tool 3</span>
+        <h3>Route planner</h3>
+        <p>Enter a start and a destination and get three options: the fastest way there, a lower-emission
+          walking or cycling route when the distance allows it, and a route chosen to stay as far as
+          possible from real active hazards.</p>
+        <a class="go" href="route.html">Plan a route →</a>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <section class="band" id="method">
+      <p class="band-label">How the score works</p>
+      <h2 class="band-head">Four steps, nothing hidden</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-n">1</div>
+          <div class="step-t">Find the place</div>
+          <p class="step-d">Your city name is turned into map coordinates using OpenStreetMap's free location lookup.</p>
+        </div>
+        <div class="step">
+          <div class="step-n">2</div>
+          <div class="step-t">Search real news</div>
+          <p class="step-d">We search a public, global news archive (GDELT) for recent articles near that place mentioning disasters or crime.</p>
+        </div>
+        <div class="step">
+          <div class="step-n">3</div>
+          <div class="step-t">Check for live hazards</div>
+          <p class="step-d">We cross-check against NASA's and the US Geological Survey's real-time disaster and earthquake feeds for anything confirmed and active nearby.</p>
+        </div>
+        <div class="step">
+          <div class="step-n">4</div>
+          <div class="step-t">Add it up, out of 100</div>
+          <p class="step-d">News volume and confirmed hazards combine into one score — low (green), moderate (blue), or high (red) — with every source listed underneath.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <div class="disclaimer">
+      <b>This is not an emergency service and not an official safety rating.</b> It's a heuristic built from
+      public news mentions and real-time disaster feeds — treat it as a starting point for research, not a
+      final answer. For real emergencies call your local emergency number. Before traveling anywhere, check
+      your government's official travel advisories and local authorities.
+    </div>
+  </div>
+</main>
+
+<div class="wrap">
+  <footer class="foot">
+    <p>
+      Disastorous is an independent hackathon project, not affiliated with any government or news agency.<br>
+      News search via <a href="https://www.gdeltproject.org/" target="_blank" rel="noopener">GDELT</a> ·
+      Natural events via <a href="https://eonet.gsfc.nasa.gov/" target="_blank" rel="noopener">NASA EONET</a> ·
+      Earthquakes via <a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS</a> ·
+      Location lookup &amp; maps via <a href="https://nominatim.org/" target="_blank" rel="noopener">OpenStreetMap</a>.<br>
+      Scores are automated estimates, not verified facts. Always check the linked sources yourself.
+    </p>
+  </footer>
+</div>
+
+</body>
+</html>

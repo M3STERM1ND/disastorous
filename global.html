@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Global Danger View — Disastorous</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Public+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+:root{
+  --bg:#F1F0EA; --surface:#FFFFFF; --surface-hi:#F8F7F3;
+  --ink:#14161A; --muted:#5B6066; --hairline:#D6D2C7;
+  --safe:#1E8E5A; --info:#3B6FE0; --danger:#D93025;
+  --f-display:"Archivo",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#111316; --surface:#1B1E22; --surface-hi:#22262B;
+    --ink:#F0EFEA; --muted:#9BA1A8; --hairline:#2C3036;
+    --safe:#2FA968; --info:#5B8DEF; --danger:#E4483A;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+
+.masthead{display:flex;align-items:center;justify-content:space-between;padding:12px 22px;border-bottom:1px solid var(--ink);background:var(--surface-hi);flex:none}
+.mark{display:flex;align-items:baseline;gap:9px;text-decoration:none}
+.mark-word{font-family:var(--f-display);font-variation-settings:"wdth" 118,"wght" 800;font-size:20px;letter-spacing:.04em;text-transform:uppercase}
+.mark-word .dot{color:var(--danger)}
+.mark-tag{font-family:var(--f-mono);font-size:10px;color:var(--muted);letter-spacing:.08em}
+.nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.nav a{font-family:var(--f-mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;color:var(--muted);padding:7px 12px;border:1px solid var(--hairline)}
+.nav a.active{background:var(--ink);color:var(--surface-hi);border-color:var(--ink)}
+
+.riskbar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 22px;border-bottom:1px solid var(--ink);background:var(--surface);flex-wrap:wrap}
+.riskbar-left{display:flex;align-items:center;gap:14px}
+.risk-dot{width:14px;height:14px;border-radius:50%;flex:none}
+.risk-dot.calm{background:var(--safe)} .risk-dot.elevated{background:var(--info)} .risk-dot.active{background:#B8860B} .risk-dot.severe{background:var(--danger)}
+.risk-label{font-family:var(--f-display);font-variation-settings:"wdth" 100,"wght" 760;font-size:18px;text-transform:uppercase}
+.risk-sub{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.risk-counts{display:flex;gap:18px;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.risk-counts b{color:var(--ink);font-size:14px;display:block;font-family:var(--f-display)}
+
+.shell{flex:1;display:grid;grid-template-columns:1fr 360px;min-height:0}
+.stage{position:relative;min-height:0}
+#map{position:absolute;inset:0}
+.maplibregl-ctrl-attrib{font-family:var(--f-mono);font-size:9px}
+.maplibregl-popup-content{background:#fff;color:#14161A}
+.maplibregl-popup-close-button{color:#14161A;font-size:16px}
+.legend-box{position:absolute;left:12px;bottom:12px;z-index:5;background:var(--surface-hi);border:1px solid var(--ink);padding:10px 13px}
+.legend-box h6{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;font-weight:600}
+.legend-box div{font-family:var(--f-mono);font-size:10px;line-height:1.9;display:flex;align-items:center;gap:7px}
+.legend-box i{width:9px;height:9px;border-radius:50%;display:block}
+.basemap-toggle{position:absolute;right:12px;bottom:12px;z-index:5;display:flex;border:1px solid var(--ink);background:var(--surface-hi)}
+.bm-btn{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;padding:7px 12px;border:none;background:transparent;color:var(--ink);cursor:pointer}
+.bm-btn.active{background:var(--ink);color:var(--surface-hi)}
+.bm-btn:not(:last-child){border-right:1px solid var(--ink)}
+.banner{position:absolute;top:12px;left:12px;right:12px;z-index:5;background:var(--ink);color:var(--surface-hi);padding:9px 14px;font-family:var(--f-mono);font-size:11px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.banner[hidden]{display:none}
+.banner button{background:none;border:none;color:inherit;cursor:pointer;font-size:14px}
+
+.panel{border-left:1px solid var(--ink);background:var(--surface);display:flex;flex-direction:column;min-height:0}
+.panel-block{padding:16px 18px;border-bottom:1px solid var(--hairline)}
+.panel-block h2{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px}
+label.fld{display:block;margin-bottom:10px}
+label.fld span{display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+input[type=text]{width:100%;font-family:var(--f-mono);font-size:13px;padding:9px 10px;border:1px solid var(--hairline);background:var(--surface-hi);color:var(--ink)}
+input:focus{border-color:var(--info);outline:none}
+.pill{font-family:var(--f-mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:11px 12px;border:1px solid var(--ink);background:var(--info);color:#fff;cursor:pointer;width:100%;box-shadow:3px 3px 0 var(--ink)}
+.pill:hover{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink)}
+.pill:disabled{opacity:.5;cursor:not-allowed}
+.hint{font-family:var(--f-mono);font-size:10px;color:var(--muted);line-height:1.7;margin-top:8px}
+.verdict{margin-top:12px;padding:12px 14px;border-left:4px solid var(--info);background:var(--surface-hi);font-size:13px}
+.verdict.safe{border-color:var(--safe)} .verdict.caution{border-color:var(--info)} .verdict.avoid{border-color:var(--danger)}
+.verdict b{display:block;font-family:var(--f-display);text-transform:uppercase;font-size:13px;margin-bottom:4px}
+.verdict[hidden]{display:none}
+
+.evt-list{flex:1;overflow-y:auto;min-height:0}
+.evt{width:100%;text-align:left;background:transparent;border:none;border-bottom:1px solid var(--hairline);padding:11px 18px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;font-family:inherit}
+.evt:hover{background:var(--surface-hi)}
+.evt i{width:9px;height:9px;border-radius:50%;flex:none;margin-top:4px}
+.evt-title{font-size:12.5px;font-weight:500;line-height:1.35}
+.evt-meta{font-family:var(--f-mono);font-size:9.5px;color:var(--muted);margin-top:3px}
+.evt-src{font-family:var(--f-mono);font-size:9.5px;font-weight:700;color:var(--info);text-decoration:underline;white-space:nowrap}
+.evt-src:hover{color:var(--danger)}
+.empty{padding:24px 18px;font-family:var(--f-mono);font-size:11px;color:var(--muted);line-height:1.8}
+
+@media (max-width:900px){
+  body{overflow:auto}
+  .shell{grid-template-columns:1fr;height:auto}
+  .panel{border-left:none;border-top:1px solid var(--ink);max-height:420px}
+  .stage{height:60vh}
+  .legend-box{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <a class="mark" href="index.html">
+    <span class="mark-word">Disastorous<span class="dot">.</span></span>
+    <span class="mark-tag">GLOBAL VIEW</span>
+  </a>
+  <nav class="nav">
+    <a href="search.html">Local search</a>
+    <a href="global.html" class="active">Global view</a>
+    <a href="route.html">Route planner</a>
+  </nav>
+</header>
+
+<div class="riskbar" id="riskbar">
+  <div class="riskbar-left">
+    <span class="risk-dot calm" id="riskDot"></span>
+    <div>
+      <div class="risk-label" id="riskLabel">Loading…</div>
+      <div class="risk-sub" id="riskSub">Checking live disaster and earthquake feeds</div>
+    </div>
+  </div>
+  <div class="risk-counts">
+    <div><b id="cSevere">—</b>Severe events</div>
+    <div><b id="cModerate">—</b>Moderate events</div>
+    <div><b id="cQuakes">—</b>Notable quakes (M4.5+, 7d)</div>
+  </div>
+</div>
+
+<div class="shell">
+  <div class="stage">
+    <div id="map"></div>
+    <div class="banner" id="banner" hidden>
+      <span id="bannerMsg"></span>
+      <button id="bannerX" aria-label="Dismiss">×</button>
+    </div>
+    <div class="legend-box">
+      <h6>Map key</h6>
+      <div><i style="background:var(--danger)"></i>Severe (wildfire, volcano, major storm/quake)</div>
+      <div><i style="background:var(--info)"></i>Moderate (flood, landslide, drought, quake)</div>
+      <div><i style="background:var(--safe)"></i>Minor / low-severity</div>
+      <div><i style="background:#14161A"></i>Crime news nearby (from "Check a place")</div>
+    </div>
+    <div class="basemap-toggle">
+      <button class="bm-btn active" id="bmMap">Map</button>
+      <button class="bm-btn" id="bmSat">Satellite</button>
+    </div>
+  </div>
+
+  <aside class="panel">
+    <div class="panel-block">
+      <h2>Check a place</h2>
+      <label class="fld">
+        <span>City or place</span>
+        <input type="text" id="placeInput" placeholder="e.g. Manila, Philippines" autocomplete="off">
+      </label>
+      <button class="pill" id="placeBtn">How safe is it right now?</button>
+      <div class="verdict" id="verdict" hidden></div>
+      <p class="hint">Checks distance to real, currently-active hazards, plus a quick crime-news check for this place. See <a href="search.html">Local search</a> for a fuller news-based score with sources.</p>
+    </div>
+    <div class="panel-block">
+      <h2>Active events (<span id="evtCount">0</span>)</h2>
+    </div>
+    <div class="evt-list" id="evtList">
+      <p class="empty">Loading active disasters and recent earthquakes…</p>
+    </div>
+  </aside>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+(function(){
+"use strict";
+
+var SEVERE_CATEGORIES = ["wildfires","volcanoes","severe storms"];
+var MODERATE_CATEGORIES = ["floods","landslides","drought","temperature extremes","manmade"];
+
+var state = { events: [] }; // unified: {title, category, severity, lat, lon, url, kind, detail}
+
+var map = new maplibregl.Map({
+  container:"map", style:"https://tiles.openfreemap.org/styles/positron",
+  center:[10,20], zoom:1.7, attributionControl:{compact:true}
+});
+map.addControl(new maplibregl.NavigationControl({showCompass:false}),"top-right");
+var mapReady = false;
+map.on("load", function(){
+  mapReady = true;
+
+  map.addSource("satellite",{type:"raster",tileSize:256,
+    tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+    attribution:"Imagery © Esri"});
+  map.addLayer({id:"satellite-layer",type:"raster",source:"satellite",layout:{visibility:"none"}});
+
+  map.addSource("events",{type:"geojson",data:emptyFC()});
+  map.addLayer({id:"events-halo",type:"circle",source:"events",
+    paint:{"circle-radius":["case",["==",["get","severity"],"danger"],13,9],"circle-color":["get","color"],"circle-opacity":0.18}});
+  map.addLayer({id:"events-dot",type:"circle",source:"events",
+    paint:{"circle-radius":["case",["==",["get","severity"],"danger"],7,5],"circle-color":["get","color"],
+           "circle-stroke-width":1.3,"circle-stroke-color":"#16181A"}});
+  map.on("click","events-dot",function(e){
+    var p = e.features[0].properties;
+    new maplibregl.Popup({closeButton:true})
+      .setLngLat(e.features[0].geometry.coordinates)
+      .setHTML('<div style="font-family:sans-serif;font-size:12px;max-width:230px;color:#14161A"><b>'+p.title+'</b><br>'+p.detail+(p.url?'<br><a href="'+p.url+'" target="_blank" rel="noopener" style="color:#3B6FE0;font-weight:600">source →</a>':'')+'</div>')
+      .addTo(map);
+  });
+  map.on("mouseenter","events-dot",function(){ map.getCanvas().style.cursor="pointer"; });
+  map.on("mouseleave","events-dot",function(){ map.getCanvas().style.cursor=""; });
+  loadAll();
+});
+function emptyFC(){ return {type:"FeatureCollection",features:[]}; }
+
+function banner(msg, warn){
+  var el = document.getElementById("banner");
+  document.getElementById("bannerMsg").textContent = msg;
+  el.className = "banner" + (warn ? " warn" : "");
+  el.hidden = false;
+}
+document.getElementById("bannerX").onclick = function(){ document.getElementById("banner").hidden = true; };
+
+document.getElementById("bmMap").onclick = function(){
+  if(!mapReady) return;
+  map.setLayoutProperty("satellite-layer","visibility","none");
+  document.getElementById("bmMap").classList.add("active");
+  document.getElementById("bmSat").classList.remove("active");
+};
+document.getElementById("bmSat").onclick = function(){
+  if(!mapReady) return;
+  map.setLayoutProperty("satellite-layer","visibility","visible");
+  document.getElementById("bmSat").classList.add("active");
+  document.getElementById("bmMap").classList.remove("active");
+};
+
+function toRad(d){ return d*Math.PI/180; }
+function haversineKm(lat1,lon1,lat2,lon2){
+  var R=6371, dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  var a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
+function categorySeverity(catTitle){
+  var t = (catTitle||"").toLowerCase();
+  if(SEVERE_CATEGORIES.some(function(c){ return t.indexOf(c.split(" ")[0]) !== -1; })) return "danger";
+  if(MODERATE_CATEGORIES.some(function(c){ return t.indexOf(c.split(" ")[0]) !== -1; })) return "info";
+  return "safe";
+}
+var SEVERITY_COLOR = {danger:"#D93025", info:"#3B6FE0", safe:"#1E8E5A"};
+
+function loadEonet(){
+  return fetch("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=300")
+    .then(function(r){ return r.json(); })
+    .then(function(json){
+      var out = [];
+      (json.events || []).forEach(function(ev){
+        var g = ev.geometry && ev.geometry[ev.geometry.length-1];
+        if(!g || !g.coordinates || g.type !== "Point") return;
+        var cat = (ev.categories && ev.categories[0] && ev.categories[0].title) || "Event";
+        var sev = categorySeverity(cat);
+        out.push({
+          title: ev.title, category: cat, severity: sev, kind:"eonet",
+          lat: g.coordinates[1], lon: g.coordinates[0],
+          url: (ev.sources && ev.sources[0] && ev.sources[0].url) || null,
+          detail: cat
+        });
+      });
+      return out;
+    }).catch(function(){ return []; });
+}
+
+function loadQuakes(){
+  return fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson")
+    .then(function(r){ return r.json(); })
+    .then(function(json){
+      return (json.features || []).map(function(f){
+        var mag = f.properties.mag;
+        var sev = mag >= 6.5 ? "danger" : (mag >= 5.5 ? "info" : "safe");
+        return {
+          title: "M" + mag + " earthquake — " + f.properties.place,
+          category: "Earthquake", severity: sev, kind:"quake",
+          lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
+          url: f.properties.url, detail: "Magnitude " + mag, mag: mag,
+          time: f.properties.time
+        };
+      });
+    }).catch(function(){ return []; });
+}
+
+function paintMap(){
+  if(!mapReady) return;
+  var feats = state.events.map(function(e){
+    return {type:"Feature",geometry:{type:"Point",coordinates:[e.lon,e.lat]},
+      properties:{title:e.title,detail:e.detail,url:e.url,severity:e.severity,color:SEVERITY_COLOR[e.severity]}};
+  });
+  map.getSource("events").setData({type:"FeatureCollection",features:feats});
+}
+
+function renderRiskBar(){
+  var severe = state.events.filter(function(e){ return e.severity === "danger"; }).length;
+  var moderate = state.events.filter(function(e){ return e.severity === "info"; }).length;
+  var quakes = state.events.filter(function(e){ return e.kind === "quake"; }).length;
+  document.getElementById("cSevere").textContent = severe;
+  document.getElementById("cModerate").textContent = moderate;
+  document.getElementById("cQuakes").textContent = quakes;
+
+  var idx = severe*3 + moderate;
+  var band, label, sub;
+  if(idx < 15){ band="calm"; label="Calm"; sub="Relatively few active severe hazards worldwide right now."; }
+  else if(idx < 40){ band="elevated"; label="Elevated"; sub="A moderate number of active hazards are being tracked worldwide."; }
+  else if(idx < 80){ band="active"; label="Active"; sub="A high number of active hazards are being tracked worldwide."; }
+  else { band="severe"; label="Severe"; sub="An unusually high number of severe active hazards worldwide."; }
+  document.getElementById("riskDot").className = "risk-dot " + band;
+  document.getElementById("riskLabel").textContent = label + " — global hazard activity";
+  document.getElementById("riskSub").textContent = sub + " (heuristic index, not an official rating)";
+}
+
+function renderList(){
+  var wrap = document.getElementById("evtList");
+  document.getElementById("evtCount").textContent = state.events.length;
+  if(!state.events.length){ wrap.innerHTML = '<p class="empty">No active events found.</p>'; return; }
+  var order = {danger:0, info:1, safe:2};
+  var rows = state.events.slice().sort(function(a,b){ return order[a.severity]-order[b.severity]; });
+  wrap.innerHTML = "";
+  rows.forEach(function(e){
+    var b = document.createElement("div");
+    b.className = "evt";
+    b.innerHTML = '<i style="background:'+SEVERITY_COLOR[e.severity]+'"></i>' +
+      '<span><span class="evt-title">'+escapeHtml(e.title)+'</span><br>' +
+      '<span class="evt-meta">'+escapeHtml(e.category)+'</span>' +
+      (e.url ? ' <a class="evt-src" href="'+e.url+'" target="_blank" rel="noopener">source →</a>' : '') +
+      '</span>';
+    b.onclick = function(ev){
+      if(ev.target.tagName === "A") return;
+      map.flyTo({center:[e.lon,e.lat], zoom:5, duration:700});
+    };
+    wrap.appendChild(b);
+  });
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+function loadAll(){
+  banner("Loading active disasters and recent earthquakes…", false);
+  Promise.all([loadEonet(), loadQuakes()]).then(function(results){
+    state.events = results[0].concat(results[1]);
+    paintMap(); renderRiskBar(); renderList();
+    banner(state.events.length + " active events loaded worldwide.", false);
+    setTimeout(function(){ document.getElementById("banner").hidden = true; }, 4000);
+  }).catch(function(err){
+    banner("Couldn't load live data: " + err.message, true);
+  });
+}
+
+/* ---------------- check a place ---------------- */
+function gdeltCrimeCount(place){
+  var terms = ["crime","shooting","robbery","assault","homicide","violence"];
+  var q = '"' + place + '" (' + terms.join(" OR ") + ")";
+  var url = "https://api.gdeltproject.org/api/v2/doc/doc?query=" + encodeURIComponent(q) +
+            "&mode=artlist&maxrecords=50&format=json&timespan=1w";
+  return fetch(url).then(function(r){ return r.text(); })
+    .then(function(txt){ try { return (JSON.parse(txt).articles || []).length; } catch(e){ return 0; } })
+    .catch(function(){ return 0; });
+}
+
+var checkMarker = null;
+function checkPlace(){
+  var q = document.getElementById("placeInput").value.trim();
+  if(!q) return;
+  var btn = document.getElementById("placeBtn");
+  btn.disabled = true; btn.textContent = "Checking…";
+  fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q))
+    .then(function(r){ return r.json(); })
+    .then(function(rows){
+      if(!rows.length){ showVerdict("caution", "Couldn't find that place", "Try a more specific name, like \"City, Country\"."); return; }
+      var lat = Number(rows[0].lat), lon = Number(rows[0].lon);
+      map.flyTo({center:[lon,lat], zoom:5, duration:800});
+
+      if(checkMarker){ checkMarker.remove(); checkMarker = null; }
+
+      var nearestSevere = null, nearestAny = null;
+      state.events.forEach(function(e){
+        var d = haversineKm(lat, lon, e.lat, e.lon);
+        if(e.severity === "danger" && (!nearestSevere || d < nearestSevere.d)) nearestSevere = {e:e, d:d};
+        if(!nearestAny || d < nearestAny.d) nearestAny = {e:e, d:d};
+      });
+
+      return gdeltCrimeCount(q).then(function(crimeCount){
+        var crimeNote = "";
+        if(crimeCount > 0){
+          crimeNote = " Also found " + crimeCount + " crime-related news article(s) mentioning this area in the past week (see the black marker — approximate location, not an exact incident spot).";
+          checkMarker = new maplibregl.Marker({color:"#14161A"}).setLngLat([lon, lat])
+            .setPopup(new maplibregl.Popup().setHTML('<div style="color:#14161A;font-size:12px">'+crimeCount+' crime-related article(s) mention this area (past week)</div>'))
+            .addTo(map);
+        }
+        if(nearestSevere && nearestSevere.d <= 100){
+          showVerdict("avoid", "Caution advised", "A severe active hazard (\""+nearestSevere.e.title+"\") is only "+nearestSevere.d.toFixed(0)+" km away. Check official local advisories before traveling." + crimeNote);
+        } else if(nearestAny && nearestAny.d <= 250){
+          showVerdict("caution", "Some caution advised", "An active hazard (\""+nearestAny.e.title+"\") is within "+nearestAny.d.toFixed(0)+" km. Likely fine, but worth checking local news." + crimeNote);
+        } else if(crimeCount >= 5){
+          showVerdict("caution", "Some caution advised", "No active natural hazard nearby, but " + crimeCount + " crime-related articles mention this area in the past week." + crimeNote);
+        } else {
+          showVerdict("safe", "No nearby hazards detected", "No active disaster or notable earthquake was found within 250 km, and little to no crime-related news nearby." + crimeNote);
+        }
+      });
+    })
+    .catch(function(){ showVerdict("caution", "Lookup failed", "Couldn't reach the location service — try again in a moment."); })
+    .finally(function(){ btn.disabled = false; btn.textContent = "How safe is it right now?"; });
+}
+function showVerdict(kind, title, detail){
+  var el = document.getElementById("verdict");
+  el.hidden = false;
+  el.className = "verdict " + kind;
+  el.innerHTML = "<b>" + title + "</b>" + detail;
+}
+document.getElementById("placeBtn").onclick = checkPlace;
+document.getElementById("placeInput").addEventListener("keydown", function(e){ if(e.key === "Enter") checkPlace(); });
+})();
+</script>
+</body>
+</html>

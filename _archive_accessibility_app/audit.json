@@ -1,0 +1,219 @@
+{
+  "area": "mission",
+  "generated": "2026-08-01T05:08:43Z",
+  "total": 10,
+  "flagged": 0,
+  "disagreement_rate": 0.0,
+  "records": [
+    {
+      "id": "CRIS-21897000-NW-Right",
+      "corner": "CESAR CHAVEZ ST: GUERRERO ST intersection",
+      "quadrant": "NW Right",
+      "lat": 37.74801343604837,
+      "lng": -122.4224873636872,
+      "verdict": "unaudited",
+      "cris": {
+        "type": "Curb ramp",
+        "present": "Yes",
+        "slope": "Range 2",
+        "updated": "2026-04-03"
+      },
+      "found": {
+        "present": "-",
+        "slope": "-",
+        "obstruction": "-",
+        "captured": "No imagery",
+        "conf": null
+      }
+    },
+    {
+      "id": "CRIS-21897000-SW-Left",
+      "corner": "CESAR CHAVEZ ST: GUERRERO ST intersection",
+      "quadrant": "SW Left",
+      "lat": 37.74801343604837,
+      "lng": -122.4224873636872,
+      "verdict": "unaudited",
+      "cris": {
+        "type": "Curb ramp",
+        "present": "Yes",
+        "slope": "Range 2",
+        "updated": "2026-04-03"
+      },
+      "found": {
+        "present": "-",
+        "slope": "-",
+        "obstruction": "-",
+        "captured": "No imagery",
+        "conf": null
+      }
+    },
+    {
+      "id": "CRIS-21897000-NE-Left",
+      "corner": "CESAR CHAVEZ ST: GUERRERO ST intersection",
+      "quadrant": "NE Left",
+      "lat": 37.74801343604837,
+      "lng": -122.4224873636872,
+      "verdict": "unaudited",
+      "cris": {
+        "type": "Curb ramp",
+        "present": "Yes",
+        "slope": "Range 2",
+        "updated": "2026-04-03"
+      },
+      "found": {
+        "present": "-",
+        "slope": "-",
+        "obstruction": "-",
+        "captured": "No imagery",
+        "conf": null
+      }
+    },
+    {
+      "id": "CRIS-21897000-NW-Left",
+      "corner": "CESAR CHAVEZ ST: GUERRERO ST intersection",
+      "quadrant": "NW Left",
+      "lat": 37.74801343604837,
+      "lng": -122.4224873636872,
+      "verdict": "unaudited",
+      "cris": {
+        "type": "Curb ramp",
+        "present": "Yes",
+        "slope": "Range 2",
+        "updated": "2026-04-03"
+      },
+      "found": {
+        "present": "-",
+        "slope": "-",
+        "obstruction": "-",
+        "captured": "No imagery",
+        "conf": null
+      }
+    },
+    {
+      "id": "CRIS-21897000-NE-Right",
+      "corner": "CESAR CHAVEZ ST: GUERRERO ST intersection",
+      "quadrant": "NE Right",
+      "lat": 37.74801343604837,
+      "lng": -122.4224873636872,
+      "verdict": "unaudited",
+      "cris": {
+        "type": "Curb ramp",
+        "present": "Yes",
+        "slope": "Range 2",
+        "updated": "2026-04-03"
+      },
+      "found": {
+        "present": "-",
+        "slope": "-",
+        "obstruction": "-",
+        "captured": "No imagery",
+        "conf": null
+      }
+    },
+    {
+      "id": "CRIS-21897000-SW-Right",
+      "corner": "CESAR CHAVEZ ST: GUERRERO ST intersection",
+      "quadrant": "SW Right",
+      "lat": 37.74801343604837,
+      "lng": -122.4224873636872,
+      "verdict": "unaudited",
+      "cris": {
+        "type": "Curb ramp",
+        "present": "Yes",
+        "slope": "Range 2",
+        "updated": "2026-04-03"
+      },
+      "found": {
+        "present": "-",
+        "slope": "-",
+        "obstruction": "-",
+        "captured": "No imagery",
+        "conf": null
+      }
+    },
+    {
+      "id": "CRIS-21897000-SE-Right",
+      "corner": "CESAR CHAVEZ ST: GUERRERO ST intersection",
+      "quadrant": "SE Right",
+      "lat": 37.74801343604837,
+      "lng": -122.4224873636872,
+      "verdict": "unaudited",
+      "cris": {
+        "type": "Curb ramp",
+        "present": "Yes",
+        "slope": "Range 2",
+        "updated": "2026-04-03"
+      },
+      "found": {
+        "present": "-",
+        "slope": "-",
+        "obstruction": "-",
+        "captured": "No imagery",
+        "conf": null
+      }
+    },
+    {
+      "id": "CRIS-21897000-SE-Left",
+      "corner": "CESAR CHAVEZ ST: GUERRERO ST intersection",
+      "quadrant": "SE Left",
+      "lat": 37.74801343604837,
+      "lng": -122.4224873636872,
+      "verdict": "unaudited",
+      "cris": {
+        "type": "Curb ramp",
+        "present": "Yes",
+        "slope": "Range 2",
+        "updated": "2026-04-03"
+      },
+      "found": {
+        "present": "-",
+        "slope": "-",
+        "obstruction": "-",
+        "captured": "No imagery",
+        "conf": null
+      }
+    },
+    {
+      "id": "CRIS-33362000-SW-Right",
+      "corner": "CESAR CHAVEZ ST: SAN JOSE AVE intersection",
+      "quadrant": "SW Right",
+      "lat": 37.74803211076404,
+      "lng": -122.42138474695089,
+      "verdict": "unaudited",
+      "cris": {
+        "type": "Curb ramp",
+        "present": "Yes",
+        "slope": "Range 2",
+        "updated": "2026-04-03"
+      },
+      "found": {
+        "present": "-",
+        "slope": "-",
+        "obstruction": "-",
+        "captured": "No imagery",
+        "conf": null
+      }
+    },
+    {
+      "id": "CRIS-33362000-SE-Left",
+      "corner": "CESAR CHAVEZ ST: SAN JOSE AVE intersection",
+      "quadrant": "SE Left",
+      "lat": 37.74803211076404,
+      "lng": -122.42138474695089,
+      "verdict": "unaudited",
+      "cris": {
+        "type": "Curb ramp",
+        "present": "Yes",
+        "slope": "Range 2",
+        "updated": "2026-04-03"
+      },
+      "found": {
+        "present": "-",
+        "slope": "-",
+        "obstruction": "-",
+        "captured": "No imagery",
+        "conf": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+# Grade pipeline
+# Install:  pip install -r requirements.txt
+# Torch: on Colab it's preinstalled. Locally, get the right build from pytorch.org first.
+
+requests>=2.31
+pillow>=10.2
+numpy>=1.26
+
+# vision — both zero-shot, no training required
+transformers>=4.44
+torch>=2.2
+accelerate>=0.30
+
+# routing
+osmnx>=2.0
+networkx>=3.2
+shapely>=2.0
+scikit-learn>=1.3   # required by osmnx.nearest_nodes for unprojected graphs
+
+# optional: serve audit.json to the frontend and proxy Mapillary if CORS bites
+fastapi>=0.110
+uvicorn>=0.29

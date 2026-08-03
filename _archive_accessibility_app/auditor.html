@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditor — Grade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Public+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+:root{
+  --concrete:#D2CFC8; --slab:#E7E4DD; --slab-hi:#F2F0EA;
+  --ink:#16181A; --graphite:#5D6165; --hairline:#B9B5AC;
+  --dome:#FFC400; --survey:#FF3F8E; --verified:#3F7D5A; --caution:#E07A28;
+  --f-display:"Archivo",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--concrete);color:var(--ink);font-family:var(--f-body);
+  line-height:1.5;-webkit-font-smoothing:antialiased;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--survey);outline-offset:2px}
+
+/* masthead */
+.masthead{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 22px;border-bottom:1px solid var(--ink);background:var(--slab-hi);flex:none;
+}
+.mark{display:flex;align-items:baseline;gap:9px;text-decoration:none}
+.mark-word{font-family:var(--f-display);font-variation-settings:"wdth" 118,"wght" 800;font-size:20px;letter-spacing:.04em;text-transform:uppercase}
+.mark-slope{font-family:var(--f-mono);font-size:10px;color:var(--graphite);letter-spacing:.08em}
+.masthead-right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+.pill{
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+  padding:7px 12px;border:1px solid var(--ink);background:transparent;cursor:pointer;
+  font-weight:500;color:var(--ink);
+}
+.pill:hover{background:var(--slab)}
+.pill[aria-pressed="true"]{background:var(--ink);color:var(--slab-hi)}
+.pill-go{background:var(--dome);box-shadow:3px 3px 0 var(--ink)}
+.pill-go:hover{background:var(--dome);transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink)}
+.pill:disabled{opacity:.4;cursor:not-allowed}
+
+/* shell */
+.shell{flex:1;display:grid;grid-template-columns:352px 1fr;min-height:0}
+.panel{
+  border-right:1px solid var(--ink);background:var(--slab);
+  display:flex;flex-direction:column;min-height:0;
+}
+.panel-block{padding:16px 18px;border-bottom:1px solid var(--hairline)}
+.panel-block h2{
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--graphite);font-weight:600;margin-bottom:12px;
+}
+label.fld{display:block;margin-bottom:10px}
+label.fld span{
+  display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--graphite);margin-bottom:5px;
+}
+select,input[type=text],input[type=password]{
+  width:100%;font-family:var(--f-mono);font-size:12.5px;padding:9px 10px;
+  border:1px solid var(--hairline);background:var(--slab-hi);color:var(--ink);border-radius:0;
+}
+select:focus,input:focus{border-color:var(--ink);outline:none}
+.hint{font-family:var(--f-mono);font-size:10px;color:var(--graphite);line-height:1.6;margin-top:6px}
+.hint a{color:var(--ink)}
+
+/* tally */
+.tally{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--hairline);border:1px solid var(--hairline)}
+.tally div{background:var(--slab-hi);padding:11px 8px;text-align:center}
+.tally b{display:block;font-family:var(--f-display);font-variation-settings:"wdth" 96,"wght" 780;font-size:24px;line-height:1}
+.tally em{font-style:normal;font-family:var(--f-mono);font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:var(--graphite);display:block;margin-top:5px}
+.tally .t-bad b{color:var(--survey)}
+
+/* filters */
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;
+  padding:5px 9px;border:1px solid var(--hairline);background:var(--slab-hi);cursor:pointer;
+}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--slab-hi);border-color:var(--ink)}
+
+/* list */
+.list-wrap{flex:1;overflow-y:auto;min-height:0}
+.rec{
+  width:100%;text-align:left;background:transparent;border:none;
+  border-bottom:1px solid var(--hairline);padding:12px 18px;cursor:pointer;
+  display:grid;grid-template-columns:8px 1fr auto;gap:11px;align-items:center;font-family:inherit;
+}
+.rec:hover{background:var(--slab-hi)}
+.rec[aria-current="true"]{background:var(--slab-hi);box-shadow:inset 4px 0 0 var(--ink)}
+.rec i{width:8px;height:8px;border-radius:50%;display:block}
+.rec-id{font-family:var(--f-mono);font-size:11.5px;font-weight:500}
+.rec-loc{font-size:12px;color:var(--graphite);font-weight:300}
+.rec-v{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;text-align:right;color:var(--graphite)}
+.empty{padding:34px 18px;font-family:var(--f-mono);font-size:11.5px;color:var(--graphite);line-height:1.8}
+
+/* map */
+.stage{position:relative;min-height:0}
+#map{position:absolute;inset:0}
+.maplibregl-ctrl-attrib{font-family:var(--f-mono);font-size:9px}
+
+.banner{
+  position:absolute;top:12px;left:12px;right:12px;z-index:5;
+  background:var(--ink);color:var(--slab-hi);padding:9px 14px;
+  font-family:var(--f-mono);font-size:11px;letter-spacing:.03em;
+  display:flex;justify-content:space-between;gap:12px;align-items:center;
+}
+.banner.warn{background:var(--survey)}
+.banner button{background:none;border:none;color:inherit;cursor:pointer;font-family:inherit;font-size:14px;line-height:1}
+.banner[hidden]{display:none}
+
+/* inspector */
+.inspector{
+  position:absolute;left:12px;bottom:12px;width:min(400px,calc(100% - 24px));z-index:6;
+  background:var(--slab-hi);border:1px solid var(--ink);box-shadow:6px 6px 0 rgba(22,24,26,.16);
+  max-height:calc(100% - 90px);overflow-y:auto;
+}
+.inspector[hidden]{display:none}
+.ins-head{padding:13px 16px;border-bottom:1px solid var(--ink);display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.ins-head h3{font-family:var(--f-mono);font-size:12.5px;font-weight:600;letter-spacing:.04em}
+.ins-head p{font-size:12px;color:var(--graphite);font-weight:300;margin-top:3px}
+.ins-close{background:none;border:none;font-size:17px;cursor:pointer;line-height:1;color:var(--graphite)}
+.verdict{padding:12px 16px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;gap:11px}
+.verdict i{width:13px;height:13px;border-radius:50%;flex:none}
+.verdict b{font-family:var(--f-display);font-variation-settings:"wdth" 100,"wght" 720;font-size:15px;text-transform:uppercase;letter-spacing:.01em}
+.verdict span{font-family:var(--f-mono);font-size:10px;color:var(--graphite);margin-left:auto;text-transform:uppercase;letter-spacing:.05em}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hairline);border-bottom:1px solid var(--hairline)}
+.compare > div{background:var(--slab-hi);padding:13px 16px}
+.compare h5{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--graphite);margin-bottom:9px;font-weight:600}
+.kv{font-family:var(--f-mono);font-size:11px;line-height:1.85}
+.kv u{text-decoration:none;color:var(--graphite);display:inline-block;min-width:64px}
+.ins-img{border-bottom:1px solid var(--hairline);background:var(--concrete)}
+.ins-img img{width:100%;display:block}
+.ins-img p{padding:10px 16px;font-family:var(--f-mono);font-size:10px;color:var(--graphite);line-height:1.7}
+.ins-foot{padding:12px 16px;display:flex;gap:8px;flex-wrap:wrap}
+
+.legend-box{
+  position:absolute;right:12px;bottom:12px;z-index:5;background:var(--slab-hi);
+  border:1px solid var(--ink);padding:11px 14px;
+}
+.legend-box h6{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--graphite);margin-bottom:8px;font-weight:600}
+.legend-box div{font-family:var(--f-mono);font-size:10.5px;line-height:1.95;display:flex;align-items:center;gap:8px}
+.legend-box i{width:9px;height:9px;border-radius:50%;display:block}
+
+@media (max-width:900px){
+  body{overflow:auto}
+  .shell{grid-template-columns:1fr;height:auto}
+  .panel{border-right:none;border-bottom:1px solid var(--ink)}
+  .list-wrap{max-height:290px}
+  .stage{height:75vh}
+  .legend-box{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <a class="mark" href="index.html">
+    <span class="mark-word">Grade</span>
+    <span class="mark-slope">AUDITOR</span>
+  </a>
+  <div class="masthead-right">
+    <button class="pill" id="modeAudit" aria-pressed="true">Audit view</button>
+    <button class="pill" id="modeRoute" aria-pressed="false">Route view</button>
+    <button class="pill pill-go" id="exportBtn">Export flagged</button>
+  </div>
+</header>
+
+<div class="shell">
+  <aside class="panel">
+
+    <div class="panel-block">
+      <h2>Source</h2>
+      <label class="fld">
+        <span>Study area</span>
+        <select id="areaSel">
+          <option value="mission">Mission District</option>
+          <option value="soma">SoMa</option>
+          <option value="tenderloin">Tenderloin</option>
+        </select>
+      </label>
+      <label class="fld">
+        <span>Where the data comes from</span>
+        <select id="srcSel">
+          <option value="sample">Example data (works offline)</option>
+          <option value="live">Real data from the city</option>
+        </select>
+      </label>
+      <button class="pill pill-go" id="loadBtn" style="width:100%;margin-top:4px">Load records</button>
+      <p class="hint" id="srcHint">This uses example data built into the page — no internet connection needed.</p>
+    </div>
+
+    <div class="panel-block" id="mlyBlock">
+      <h2>Street photo key</h2>
+      <p class="hint" style="margin-top:0 0 10px">
+        To pull up a real street photo of a corner, you need a free key from Mapillary (a site where people share street-view photos). It takes about 2 minutes:<br><br>
+        <b>1.</b> Go to <a href="https://www.mapillary.com/developer" target="_blank" rel="noopener">mapillary.com/developer</a><br>
+        <b>2.</b> Sign up / log in (it's free)<br>
+        <b>3.</b> Click "Register application" — fill in any name, any URL<br>
+        <b>4.</b> Copy the "Client Token" it gives you (starts with <code style="background:var(--slab-hi);border:1px solid var(--hairline);padding:1px 4px">MLY|</code>)<br>
+        <b>5.</b> Paste it in the box below
+      </p>
+      <label class="fld">
+        <span>Paste your Mapillary key here</span>
+        <input type="password" id="mlyToken" placeholder="MLY|…" autocomplete="off">
+      </label>
+      <p class="hint">This stays in your browser tab only — it's never saved or sent anywhere except to Mapillary itself.</p>
+    </div>
+
+    <div class="panel-block">
+      <h2>Tally</h2>
+      <div class="tally">
+        <div><b id="tTotal">0</b><em>Corners checked</em></div>
+        <div class="t-bad"><b id="tBad">0</b><em>Problems found</em></div>
+        <div><b id="tRate">—</b><em>Don't match</em></div>
+      </div>
+    </div>
+
+    <div class="panel-block">
+      <h2>Filter</h2>
+      <div class="filters" id="filters">
+        <button class="chip" data-f="all" aria-pressed="true">All</button>
+        <button class="chip" data-f="missing" aria-pressed="false">Missing</button>
+        <button class="chip" data-f="obstructed" aria-pressed="false">Blocked</button>
+        <button class="chip" data-f="slope" aria-pressed="false">Too steep</button>
+        <button class="chip" data-f="confirmed" aria-pressed="false">Good</button>
+        <button class="chip" data-f="unaudited" aria-pressed="false">Not checked</button>
+      </div>
+    </div>
+
+    <div class="list-wrap" id="listWrap">
+      <p class="empty">No records loaded. Pick a study area and choose <b>Load records</b>.</p>
+    </div>
+  </aside>
+
+  <div class="stage">
+    <div id="map"></div>
+    <div class="banner" id="banner" hidden>
+      <span id="bannerMsg"></span>
+      <button id="bannerX" aria-label="Dismiss">×</button>
+    </div>
+
+    <div class="legend-box">
+      <h6>What the dot color means</h6>
+      <div><i style="background:#3F7D5A"></i>Ramp is there, as expected</div>
+      <div><i style="background:#FF3F8E"></i>Missing — city says yes, photo says no</div>
+      <div><i style="background:#E07A28"></i>Blocked — can't be used right now</div>
+      <div><i style="background:#8A5CD0"></i>Too steep for a wheelchair</div>
+      <div><i style="background:#8E9296"></i>Not checked yet</div>
+    </div>
+
+    <section class="inspector" id="inspector" hidden aria-live="polite">
+      <div class="ins-head">
+        <div>
+          <h3 id="insId">—</h3>
+          <p id="insLoc">—</p>
+        </div>
+        <button class="ins-close" id="insClose" aria-label="Close inspector">×</button>
+      </div>
+      <div class="verdict" id="insVerdict">
+        <i></i><b>—</b><span></span>
+      </div>
+      <div class="compare">
+        <div>
+          <h5>What the city says</h5>
+          <div class="kv" id="insCris"></div>
+        </div>
+        <div>
+          <h5>What the photo shows</h5>
+          <div class="kv" id="insFound"></div>
+        </div>
+      </div>
+      <div class="ins-img" id="insImg" hidden>
+        <img id="insImgEl" alt="Street-level photo of the audited corner">
+        <p id="insImgCap"></p>
+      </div>
+      <div class="ins-foot">
+        <button class="pill" id="fetchImgBtn">Get street photo</button>
+        <button class="pill" id="copyBtn">Copy report</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* ---------------------------------------------------------------
+   Study areas. Coordinates are real SF intersections; the audit
+   verdicts attached to them below are SAMPLE data, generated
+   deterministically so the demo is stable. Swap in real pipeline
+   output via the "Live CRIS" source plus pipeline/audit.py.
+----------------------------------------------------------------*/
+var AREAS = {
+  mission: {
+    label:"Mission District", center:[-122.4170,37.7570], zoom:14.4,
+    corners:[
+      ["24th & Mission",37.7522,-122.4184],["24th & Valencia",37.7523,-122.4210],
+      ["22nd & Mission",37.7553,-122.4188],["20th & Mission",37.7585,-122.4190],
+      ["18th & Mission",37.7617,-122.4192],["16th & Mission",37.7650,-122.4196],
+      ["18th & Valencia",37.7615,-122.4217],["16th & Valencia",37.7648,-122.4220],
+      ["24th & Folsom",37.7525,-122.4142],["22nd & Folsom",37.7556,-122.4145],
+      ["20th & Bryant",37.7588,-122.4110],["24th & Potrero",37.7527,-122.4076]
+    ]
+  },
+  soma: {
+    label:"SoMa", center:[-122.4030,37.7790], zoom:14.5,
+    corners:[
+      ["5th & Howard",37.7817,-122.4055],["6th & Mission",37.7810,-122.4092],
+      ["4th & Bryant",37.7784,-122.3970],["7th & Folsom",37.7768,-122.4083],
+      ["3rd & Harrison",37.7833,-122.3950],["5th & Bryant",37.7757,-122.4020],
+      ["8th & Howard",37.7752,-122.4110],["2nd & Folsom",37.7855,-122.3945]
+    ]
+  },
+  tenderloin: {
+    label:"Tenderloin", center:[-122.4140,37.7840], zoom:15,
+    corners:[
+      ["Turk & Jones",37.7828,-122.4128],["Eddy & Leavenworth",37.7840,-122.4140],
+      ["Golden Gate & Hyde",37.7815,-122.4155],["O'Farrell & Larkin",37.7858,-122.4175],
+      ["Ellis & Taylor",37.7848,-122.4108],["Post & Polk",37.7873,-122.4192]
+    ]
+  }
+};
+
+var VERDICTS = {
+  confirmed:{label:"Ramp is there, as expected",color:"#3F7D5A",flag:false},
+  missing:{label:"Missing — city says yes, photo says no",color:"#FF3F8E",flag:true},
+  obstructed:{label:"Blocked — can't be used right now",color:"#E07A28",flag:true},
+  slope:{label:"Too steep for a wheelchair",color:"#8E5CD0",flag:true},
+  unaudited:{label:"Not checked yet",color:"#8E9296",flag:false}
+};
+
+var SHORT = {confirmed:"Good",missing:"Missing",obstructed:"Blocked",slope:"Too steep",unaudited:"Not checked"};
+
+var RAMP_TYPES = ["Perpendicular","Parallel","Diagonal","Combination","Depressed corner"];
+var OBSTRUCTIONS = ["Vehicle parked across ramp","Construction plating","Scooter cluster","Refuse bins","Utility box encroachment"];
+
+/* small deterministic PRNG so the demo never changes shape between runs */
+function mkRng(seed){
+  var s = seed >>> 0;
+  return function(){ s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+}
+
+function buildSample(areaKey){
+  var area = AREAS[areaKey];
+  var rng = mkRng(areaKey.length * 9173 + 41);
+  var out = [], n = 0;
+  area.corners.forEach(function(c, ci){
+    var name = c[0], lat = c[1], lng = c[2];
+    var quads = [[1,1,"NE"],[1,-1,"NW"],[-1,1,"SE"],[-1,-1,"SW"]];
+    quads.forEach(function(q){
+      n++;
+      var r = rng();
+      var verdict = "confirmed";
+      if(r < 0.085) verdict = "missing";
+      else if(r < 0.155) verdict = "obstructed";
+      else if(r < 0.205) verdict = "slope";
+      else if(r < 0.235) verdict = "unaudited";
+
+      var crisSlope = 7.0 + rng()*1.2;
+      var obsSlope = verdict === "slope" ? 9.1 + rng()*2.4 : crisSlope + (rng()-0.5)*0.9;
+
+      out.push({
+        id:"RAMP-" + (48000 + ci*40 + n*3),
+        corner:name, quadrant:q[2],
+        lat: lat + q[0]*0.00016 + (rng()-0.5)*0.00004,
+        lng: lng + q[1]*0.00019 + (rng()-0.5)*0.00004,
+        verdict: verdict,
+        cris:{
+          type: RAMP_TYPES[Math.floor(rng()*RAMP_TYPES.length)],
+          present:"Yes",
+          slope: crisSlope.toFixed(1) + "%",
+          updated: ["2025-11-14","2026-02-03","2026-05-19"][Math.floor(rng()*3)]
+        },
+        found:{
+          present: verdict === "missing" ? "No" : "Yes",
+          slope: verdict === "unaudited" ? "—" : obsSlope.toFixed(1) + "%",
+          obstruction: verdict === "obstructed" ? OBSTRUCTIONS[Math.floor(rng()*OBSTRUCTIONS.length)] : "None",
+          captured: verdict === "unaudited" ? "No imagery" : ["2026-06-02","2026-06-24","2026-07-11"][Math.floor(rng()*3)],
+          conf: verdict === "unaudited" ? null : (0.71 + rng()*0.27)
+        }
+      });
+    });
+  });
+  return out;
+}
+
+/* ---------------- state ---------------- */
+var state = { records:[], filter:"all", selected:null, mode:"audit", source:"sample", token:"" };
+
+/* ---------------- map ---------------- */
+var map = new maplibregl.Map({
+  container:"map",
+  style:"https://tiles.openfreemap.org/styles/positron",
+  center:AREAS.mission.center, zoom:AREAS.mission.zoom, attributionControl:{compact:true}
+});
+map.addControl(new maplibregl.NavigationControl({showCompass:false}),"top-right");
+var mapReady = false;
+map.on("load", function(){
+  mapReady = true;
+  map.addSource("ramps",{type:"geojson",data:emptyFC()});
+  map.addLayer({id:"ramps-halo",type:"circle",source:"ramps",
+    paint:{"circle-radius":["case",["get","flag"],11,7],"circle-color":["get","color"],"circle-opacity":0.18}});
+  map.addLayer({id:"ramps-dot",type:"circle",source:"ramps",
+    paint:{"circle-radius":["case",["get","flag"],6.5,4.5],"circle-color":["get","color"],
+           "circle-stroke-width":1.4,"circle-stroke-color":"#16181A"}});
+
+  map.addSource("routes",{type:"geojson",data:emptyFC()});
+  map.addLayer({id:"route-base",type:"line",source:"routes",filter:["==","kind","baseline"],
+    paint:{"line-color":"#8E9296","line-width":4,"line-dasharray":[2,1.6]}});
+  map.addLayer({id:"route-acc",type:"line",source:"routes",filter:["==","kind","accessible"],
+    paint:{"line-color":"#16181A","line-width":4.5}});
+
+  map.on("click","ramps-dot",function(e){ select(e.features[0].properties.id); });
+  map.on("mouseenter","ramps-dot",function(){ map.getCanvas().style.cursor="pointer"; });
+  map.on("mouseleave","ramps-dot",function(){ map.getCanvas().style.cursor=""; });
+
+  loadRecords();
+});
+
+function emptyFC(){ return {type:"FeatureCollection",features:[]}; }
+
+function paintMap(){
+  if(!mapReady) return;
+  var feats = visible().map(function(r){
+    var v = VERDICTS[r.verdict];
+    return {type:"Feature",geometry:{type:"Point",coordinates:[r.lng,r.lat]},
+      properties:{id:r.id,color:v.color,flag:v.flag}};
+  });
+  map.getSource("ramps").setData({type:"FeatureCollection",features:feats});
+}
+
+/* ---------------- rendering ---------------- */
+function visible(){
+  if(state.filter === "all") return state.records;
+  return state.records.filter(function(r){ return r.verdict === state.filter; });
+}
+
+function renderList(){
+  var wrap = document.getElementById("listWrap");
+  var rows = visible();
+  if(!rows.length){
+    wrap.innerHTML = '<p class="empty">Nothing matches this filter.</p>';
+    return;
+  }
+  var order = {missing:0,obstructed:1,slope:2,unaudited:3,confirmed:4};
+  rows = rows.slice().sort(function(a,b){ return order[a.verdict] - order[b.verdict]; });
+  wrap.innerHTML = "";
+  rows.forEach(function(r){
+    var v = VERDICTS[r.verdict];
+    var b = document.createElement("button");
+    b.className = "rec";
+    b.setAttribute("aria-current", state.selected === r.id ? "true" : "false");
+    b.innerHTML = '<i style="background:'+v.color+'"></i>' +
+      '<span><span class="rec-id">'+r.id+'</span><br><span class="rec-loc">'+r.corner+' · '+r.quadrant+'</span></span>' +
+      '<span class="rec-v">'+SHORT[r.verdict]+'</span>';
+    b.onclick = function(){ select(r.id); };
+    wrap.appendChild(b);
+  });
+}
+
+function renderTally(){
+  var total = state.records.length;
+  var bad = state.records.filter(function(r){ return VERDICTS[r.verdict].flag; }).length;
+  document.getElementById("tTotal").textContent = total;
+  document.getElementById("tBad").textContent = bad;
+  document.getElementById("tRate").textContent = total ? Math.round(bad/total*100) + "%" : "—";
+}
+
+function select(id){
+  state.selected = id;
+  var r = state.records.find(function(x){ return x.id === id; });
+  if(!r) return;
+  var v = VERDICTS[r.verdict];
+
+  document.getElementById("insId").textContent = r.id;
+  document.getElementById("insLoc").textContent = r.corner + " · " + r.quadrant + " corner";
+
+  var vd = document.getElementById("insVerdict");
+  vd.querySelector("i").style.background = v.color;
+  vd.querySelector("b").textContent = v.label;
+  vd.querySelector("span").textContent = r.found.conf ? Math.round(r.found.conf*100) + "% sure" : "";
+
+  document.getElementById("insCris").innerHTML =
+    kv("Ramp there?",r.cris.present) + kv("Ramp type",r.cris.type) +
+    kv("Steepness",r.cris.slope) + kv("Last updated",r.cris.updated);
+
+  document.getElementById("insFound").innerHTML =
+    kv("Ramp there?",r.found.present) + kv("Blocked by",r.found.obstruction) +
+    kv("Steepness",r.found.slope) + kv("Photo taken",r.found.captured);
+
+  document.getElementById("insImg").hidden = true;
+  document.getElementById("inspector").hidden = false;
+  renderList();
+  map.flyTo({center:[r.lng,r.lat],zoom:Math.max(map.getZoom(),17),duration:700});
+}
+
+function kv(k,v){ return '<div><u>'+k+'</u>'+v+'</div>'; }
+
+/* ---------------- data loading ---------------- */
+function loadRecords(){
+  var areaKey = document.getElementById("areaSel").value;
+  state.source = document.getElementById("srcSel").value;
+  state.selected = null;
+  document.getElementById("inspector").hidden = true;
+
+  var area = AREAS[areaKey];
+  map.flyTo({center:area.center,zoom:area.zoom,duration:800});
+
+  if(state.source === "sample"){
+    state.records = buildSample(areaKey);
+    afterLoad();
+    banner("Loaded " + state.records.length + " example corners in " + area.label + ". These results are for demo purposes, not real findings.", false);
+    return;
+  }
+  loadLive(areaKey, area);
+}
+
+function afterLoad(){ renderTally(); renderList(); paintMap(); drawRoutes(); }
+
+/* Live CRIS pull from the DataSF Socrata endpoint.
+   Records arrive as "unaudited" — the vision pipeline runs server-side.  */
+function loadLive(areaKey, area){
+  var lats = area.corners.map(function(c){return c[1];});
+  var lngs = area.corners.map(function(c){return c[2];});
+  var pad = 0.004;
+  var minLat = Math.min.apply(null,lats)-pad, maxLat = Math.max.apply(null,lats)+pad;
+  var minLng = Math.min.apply(null,lngs)-pad, maxLng = Math.max.apply(null,lngs)+pad;
+
+  var where = encodeURIComponent(
+    "latitude between " + minLat + " and " + maxLat +
+    " AND longitude between " + minLng + " and " + maxLng
+  );
+  var url = "https://data.sfgov.org/resource/ch9w-7kih.json?$limit=400&$where=" + where;
+
+  banner("Asking the city's database for curb ramp records…", false);
+  document.getElementById("listWrap").innerHTML = '<p class="empty">Loading real records from the city…</p>';
+
+  fetch(url)
+    .then(function(res){ if(!res.ok) throw new Error("DataSF returned " + res.status); return res.json(); })
+    .then(function(rows){
+      state.records = rows.map(function(row,i){
+        var lat = Number(row.latitude);
+        var lng = Number(row.longitude);
+        if(!isFinite(lat) || !isFinite(lng)) return null;
+        var exists = row.crexist === "1";
+        return {
+          id: "RAMP-" + (row.locid || row.cnn || i),
+          corner: row.locationdescription || "Unnamed corner",
+          quadrant: [row.curbreturnloc, row.positiononreturn].filter(Boolean).join(" ") || "—",
+          lat: lat, lng: lng, verdict: "unaudited",
+          cris:{ type: exists ? "Curb ramp" : "Not present", present: exists ? "Yes" : "No",
+                 slope: row.sloperangeid ? "Range " + row.sloperangeid : "Not recorded",
+                 updated: (row.lastupdate || "Unknown").slice(0,10) },
+          found:{ present:"—", slope:"—", obstruction:"—", captured:"Not checked yet", conf:null }
+        };
+      }).filter(Boolean);
+      afterLoad();
+      banner(state.records.length + " real records loaded from the city. They show as “Not checked yet” until the photo-checking step runs.", false);
+    })
+    .catch(function(err){
+      document.getElementById("listWrap").innerHTML =
+        '<p class="empty">Could not reach the city’s database.<br><br>' + String(err.message) +
+        '<br><br>Switch the source back to <b>Example data</b> to keep working offline.</p>';
+      banner("Couldn't reach the city's database — " + err.message + ". Example data still works.", true);
+    });
+}
+
+/* ---------------- Mapillary imagery ---------------- */
+function fetchImagery(){
+  var r = state.records.find(function(x){ return x.id === state.selected; });
+  if(!r) return;
+  var token = document.getElementById("mlyToken").value.trim();
+  var cap = document.getElementById("insImgCap");
+  var box = document.getElementById("insImg");
+
+  if(!token){
+    document.getElementById("mlyBlock").hidden = false;
+    banner("Add a free Mapillary key in the left panel to pull up a street photo of this corner.", true);
+    document.getElementById("mlyToken").focus();
+    return;
+  }
+
+  var d = 0.0012;
+  var bbox = [r.lng-d, r.lat-d, r.lng+d, r.lat+d].join(",");
+  var url = "https://graph.mapillary.com/images?access_token=" + encodeURIComponent(token) +
+            "&fields=id,captured_at,thumb_1024_url,compass_angle&bbox=" + bbox + "&limit=6";
+
+  box.hidden = false;
+  cap.textContent = "Looking for a street photo near " + r.lat.toFixed(5) + ", " + r.lng.toFixed(5) + "…";
+
+  fetch(url)
+    .then(function(res){ if(!res.ok) throw new Error("Mapillary returned " + res.status); return res.json(); })
+    .then(function(json){
+      var imgs = (json.data || []).filter(function(i){ return i.thumb_1024_url; });
+      if(!imgs.length){
+        cap.textContent = "No street photos within about 130 m of this corner. Try a different corner.";
+        document.getElementById("insImgEl").removeAttribute("src");
+        return;
+      }
+      imgs.sort(function(a,b){ return (b.captured_at||0) - (a.captured_at||0); });
+      var best = imgs[0];
+      document.getElementById("insImgEl").src = best.thumb_1024_url;
+      var when = best.captured_at ? new Date(best.captured_at).toISOString().slice(0,10) : "date unknown";
+      cap.textContent = "Photo taken " + when + " · via Mapillary, CC BY-SA. Automated ramp-checking runs separately (audit.py), not live in the browser.";
+    })
+    .catch(function(err){
+      cap.textContent = "Couldn't load the photo: " + err.message +
+        ". If this keeps happening, it may need to be routed through a small backend service to avoid a browser security block (CORS).";
+      document.getElementById("insImgEl").removeAttribute("src");
+    });
+}
+
+/* ---------------- routing view ---------------- */
+/* Illustrative geometry. Replace with pipeline/route.py output, which
+   weights the OSM pedestrian graph by the verdicts above.            */
+function routeFixtures(areaKey){
+  var a = AREAS[areaKey];
+  if(!a || a.corners.length < 5) return emptyFC();
+  var c = a.corners;
+  var last = c.length - 1;
+  function pt(i){ var k = c[Math.min(i,last)]; return [k[2],k[1]]; }
+  var base = [pt(0),pt(2),pt(3),pt(4)];
+  var acc  = [pt(0),pt(1),pt(Math.min(6,last)),pt(4)];
+  return {type:"FeatureCollection",features:[
+    {type:"Feature",properties:{kind:"baseline"},geometry:{type:"LineString",coordinates:base}},
+    {type:"Feature",properties:{kind:"accessible"},geometry:{type:"LineString",coordinates:acc}}
+  ]};
+}
+
+function drawRoutes(){
+  if(!mapReady) return;
+  var src = map.getSource("routes");
+  if(!src) return;
+  src.setData(state.mode === "route" ? routeFixtures(document.getElementById("areaSel").value) : emptyFC());
+}
+
+function setMode(mode){
+  state.mode = mode;
+  document.getElementById("modeAudit").setAttribute("aria-pressed", String(mode === "audit"));
+  document.getElementById("modeRoute").setAttribute("aria-pressed", String(mode === "route"));
+  drawRoutes();
+  banner(mode === "route"
+    ? "Route view — the dashed grey line is the usual shortest walk. The solid black line takes a longer path to avoid every flagged problem spot. (This is example geometry until route.py generates real ones.)"
+    : "Audit view — each dot is one curb-ramp record, colored by what the street photo showed.", false);
+}
+
+/* ---------------- export ---------------- */
+function exportFlagged(){
+  var flagged = state.records.filter(function(r){ return VERDICTS[r.verdict].flag; });
+  if(!flagged.length){ banner("Nothing flagged in the current load — nothing to export.", true); return; }
+  var fc = {type:"FeatureCollection",features:flagged.map(function(r){
+    return {type:"Feature",geometry:{type:"Point",coordinates:[r.lng,r.lat]},
+      properties:{id:r.id,corner:r.corner,quadrant:r.quadrant,verdict:r.verdict,
+        cris_type:r.cris.type,cris_slope:r.cris.slope,cris_updated:r.cris.updated,
+        observed_present:r.found.present,observed_slope:r.found.slope,
+        obstruction:r.found.obstruction,imagery_date:r.found.captured,
+        confidence:r.found.conf}};
+  })};
+  var blob = new Blob([JSON.stringify(fc,null,2)],{type:"application/geo+json"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "grade-flagged-" + document.getElementById("areaSel").value + ".geojson";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  banner("Exported " + flagged.length + " flagged records as GeoJSON.", false);
+}
+
+function copyReport(){
+  var r = state.records.find(function(x){ return x.id === state.selected; });
+  if(!r) return;
+  var txt = [
+    "Curb ramp problem report",
+    "Record ID: " + r.id,
+    "Location: " + r.corner + " (" + r.quadrant + " corner)",
+    "Coordinates: " + r.lat.toFixed(6) + ", " + r.lng.toFixed(6),
+    "",
+    "The city's records say: ramp present (" + r.cris.type + "), steepness " + r.cris.slope + ", last updated " + r.cris.updated,
+    "The street photo shows: present " + r.found.present + ", steepness " + r.found.slope + ", blocked by " + r.found.obstruction,
+    "Photo taken: " + r.found.captured,
+    "Result: " + VERDICTS[r.verdict].label,
+    "",
+    "Generated by Grade. This is an automated estimate, not an official ADA compliance determination."
+  ].join("\n");
+  navigator.clipboard.writeText(txt)
+    .then(function(){ banner("Report copied to clipboard.", false); })
+    .catch(function(){ banner("Clipboard blocked by the browser — select the text manually.", true); });
+}
+
+/* ---------------- banner ---------------- */
+var bannerTimer;
+function banner(msg, warn){
+  var el = document.getElementById("banner");
+  document.getElementById("bannerMsg").textContent = msg;
+  el.className = "banner" + (warn ? " warn" : "");
+  el.hidden = false;
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(function(){ el.hidden = true; }, 9000);
+}
+
+/* ---------------- wiring ---------------- */
+document.getElementById("loadBtn").onclick = loadRecords;
+document.getElementById("modeAudit").onclick = function(){ setMode("audit"); };
+document.getElementById("modeRoute").onclick = function(){ setMode("route"); };
+document.getElementById("exportBtn").onclick = exportFlagged;
+document.getElementById("insClose").onclick = function(){
+  document.getElementById("inspector").hidden = true; state.selected = null; renderList();
+};
+document.getElementById("fetchImgBtn").onclick = fetchImagery;
+document.getElementById("copyBtn").onclick = copyReport;
+document.getElementById("bannerX").onclick = function(){ document.getElementById("banner").hidden = true; };
+
+document.getElementById("srcSel").onchange = function(){
+  var live = this.value === "live";
+  document.getElementById("srcHint").textContent = live
+    ? "Pulls real curb-ramp records from the city's public database. They show as “Not checked yet” until the photo-checking tool runs."
+    : "This uses example data built into the page — no internet connection needed.";
+};
+
+/* Remember the Mapillary key in this browser so it doesn't need to be re-pasted every visit. */
+(function(){
+  var input = document.getElementById("mlyToken");
+  var saved = localStorage.getItem("grade_mapillary_key");
+  if(saved) input.value = saved;
+  input.addEventListener("input", function(){
+    if(input.value.trim()) localStorage.setItem("grade_mapillary_key", input.value.trim());
+    else localStorage.removeItem("grade_mapillary_key");
+  });
+})();
+
+document.getElementById("filters").addEventListener("click", function(e){
+  var chip = e.target.closest(".chip");
+  if(!chip) return;
+  state.filter = chip.dataset.f;
+  [].forEach.call(this.querySelectorAll(".chip"), function(c){
+    c.setAttribute("aria-pressed", String(c === chip));
+  });
+  renderList(); paintMap();
+});
+
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape"){
+    document.getElementById("inspector").hidden = true;
+    state.selected = null; renderList();
+  }
+});
+})();
+</script>
+</body>
+</html>

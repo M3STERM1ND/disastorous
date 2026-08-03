@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Danger Search — Disastorous</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Public+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+:root{
+  --bg:#F1F0EA; --surface:#FFFFFF; --surface-hi:#F8F7F3;
+  --ink:#14161A; --muted:#5B6066; --hairline:#D6D2C7;
+  --safe:#1E8E5A; --info:#3B6FE0; --danger:#D93025;
+  --f-display:"Archivo",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#111316; --surface:#1B1E22; --surface-hi:#22262B;
+    --ink:#F0EFEA; --muted:#9BA1A8; --hairline:#2C3036;
+    --safe:#2FA968; --info:#5B8DEF; --danger:#E4483A;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+
+.masthead{display:flex;align-items:center;justify-content:space-between;padding:12px 22px;border-bottom:1px solid var(--ink);background:var(--surface-hi);flex:none}
+.mark{display:flex;align-items:baseline;gap:9px;text-decoration:none}
+.mark-word{font-family:var(--f-display);font-variation-settings:"wdth" 118,"wght" 800;font-size:20px;letter-spacing:.04em;text-transform:uppercase}
+.mark-word .dot{color:var(--danger)}
+.mark-tag{font-family:var(--f-mono);font-size:10px;color:var(--muted);letter-spacing:.08em}
+.nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.nav a{font-family:var(--f-mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;color:var(--muted);padding:7px 12px;border:1px solid var(--hairline)}
+.nav a.active{background:var(--ink);color:var(--surface-hi);border-color:var(--ink)}
+
+.shell{flex:1;display:grid;grid-template-columns:380px 1fr;min-height:0}
+.panel{border-right:1px solid var(--ink);background:var(--surface);display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+.panel-block{padding:16px 18px;border-bottom:1px solid var(--hairline)}
+.panel-block h2{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px}
+label.fld{display:block;margin-bottom:10px}
+label.fld span{display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+select,input[type=text]{width:100%;font-family:var(--f-mono);font-size:13px;padding:9px 10px;border:1px solid var(--hairline);background:var(--surface-hi);color:var(--ink);border-radius:0}
+select:focus,input:focus{border-color:var(--info);outline:none}
+.hint{font-family:var(--f-mono);font-size:10px;color:var(--muted);line-height:1.7;margin-top:8px}
+.pill{font-family:var(--f-mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:11px 12px;border:1px solid var(--ink);background:transparent;cursor:pointer;font-weight:500;color:var(--ink);width:100%}
+.pill-go{background:var(--info);color:#fff;box-shadow:3px 3px 0 var(--ink)}
+.pill-go:hover{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink)}
+.pill:disabled{opacity:.5;cursor:not-allowed}
+
+.score-wrap{display:flex;align-items:center;gap:18px}
+.score-num{font-family:var(--f-display);font-variation-settings:"wdth" 96,"wght" 800;font-size:52px;line-height:1;color:var(--info)}
+.score-num.low{color:var(--safe)} .score-num.high{color:var(--danger)}
+.score-band{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.score-band b{display:block;font-size:13px;color:var(--ink)}
+.meter{margin-top:14px;height:12px;background:var(--surface-hi);border:1px solid var(--hairline);position:relative;overflow:hidden}
+.meter i{position:absolute;top:0;bottom:0;left:0;background:var(--info);transition:width .5s ease}
+.meter i.low{background:var(--safe)} .meter i.high{background:var(--danger)}
+.meter-labels{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:9.5px;color:var(--muted);margin-top:5px;text-transform:uppercase}
+
+.breakdown{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--hairline);border:1px solid var(--hairline);margin-top:14px}
+.breakdown div{background:var(--surface-hi);padding:10px 8px;text-align:center}
+.breakdown b{display:block;font-family:var(--f-display);font-size:20px}
+.breakdown em{font-style:normal;font-family:var(--f-mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin-top:4px}
+
+.src-list{flex:1;overflow-y:auto;min-height:0}
+.src{display:block;padding:12px 18px;border-bottom:1px solid var(--hairline);text-decoration:none;color:inherit}
+.src:hover{background:var(--surface-hi)}
+.src-tag{display:inline-block;font-family:var(--f-mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;margin-bottom:6px;color:#fff}
+.src-tag.disaster{background:var(--danger)}
+.src-tag.crime{background:var(--ink)}
+.src-tag.event{background:#B8860B}
+.src-tag.quake{background:var(--safe)}
+.src-title{font-size:13px;font-weight:500;line-height:1.4}
+.src-meta{font-family:var(--f-mono);font-size:10px;color:var(--muted);margin-top:5px}
+.empty{padding:30px 18px;font-family:var(--f-mono);font-size:11.5px;color:var(--muted);line-height:1.8}
+
+.stage{position:relative;min-height:0}
+#map{position:absolute;inset:0}
+.maplibregl-ctrl-attrib{font-family:var(--f-mono);font-size:9px}
+.maplibregl-popup-content{background:#fff;color:#14161A}
+.maplibregl-popup-close-button{color:#14161A;font-size:16px}
+.banner{position:absolute;top:12px;left:12px;right:12px;z-index:5;background:var(--ink);color:var(--surface-hi);padding:9px 14px;font-family:var(--f-mono);font-size:11px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.banner.warn{background:var(--danger)}
+.banner button{background:none;border:none;color:inherit;cursor:pointer;font-size:14px}
+.banner[hidden]{display:none}
+.legend-box{position:absolute;right:12px;bottom:12px;z-index:5;background:var(--surface-hi);border:1px solid var(--ink);padding:10px 13px}
+.legend-box h6{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;font-weight:600}
+.legend-box div{font-family:var(--f-mono);font-size:10px;line-height:1.9;display:flex;align-items:center;gap:7px}
+.legend-box i{width:9px;height:9px;border-radius:50%;display:block}
+.basemap-toggle{position:absolute;left:12px;bottom:12px;z-index:5;display:flex;border:1px solid var(--ink);background:var(--surface-hi)}
+.bm-btn{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;padding:7px 12px;border:none;background:transparent;color:var(--ink);cursor:pointer}
+.bm-btn.active{background:var(--ink);color:var(--surface-hi)}
+.bm-btn:not(:last-child){border-right:1px solid var(--ink)}
+
+@media (max-width:860px){
+  body{overflow:auto}
+  .shell{grid-template-columns:1fr;height:auto}
+  .panel{border-right:none;border-bottom:1px solid var(--ink);max-height:none}
+  .stage{height:60vh}
+  .legend-box{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <a class="mark" href="index.html">
+    <span class="mark-word">Disastorous<span class="dot">.</span></span>
+    <span class="mark-tag">LOCAL SEARCH</span>
+  </a>
+  <nav class="nav">
+    <a href="search.html" class="active">Local search</a>
+    <a href="global.html">Global view</a>
+    <a href="route.html">Route planner</a>
+  </nav>
+</header>
+
+<div class="shell">
+  <aside class="panel">
+    <div class="panel-block">
+      <h2>Where &amp; how far</h2>
+      <label class="fld">
+        <span>City or place</span>
+        <input type="text" id="cityInput" placeholder="e.g. Mission District, San Francisco" autocomplete="off">
+      </label>
+      <label class="fld">
+        <span>Radius</span>
+        <select id="radiusSel">
+          <option value="5">5 km</option>
+          <option value="10">10 km</option>
+          <option value="25" selected>25 km</option>
+          <option value="50">50 km</option>
+          <option value="100">100 km</option>
+        </select>
+      </label>
+      <button class="pill pill-go" id="goBtn">Check this area</button>
+      <p class="hint">We'll look up the place, search recent news nearby for disasters &amp; crime, and check live hazard feeds — all from free public sources, no account needed.</p>
+    </div>
+
+    <div class="panel-block" id="scoreBlock" hidden>
+      <h2>Danger score</h2>
+      <div class="score-wrap">
+        <div class="score-num" id="scoreNum">—</div>
+        <div class="score-band"><span>out of 100</span><b id="scoreBand">—</b></div>
+      </div>
+      <div class="meter"><i id="scoreMeter" style="width:0%"></i></div>
+      <div class="meter-labels"><span>0 calm</span><span>50</span><span>100 high</span></div>
+      <div class="breakdown">
+        <div><b id="bDisaster">0</b><em>Disaster news</em></div>
+        <div><b id="bCrime">0</b><em>Crime news</em></div>
+        <div><b id="bEonet">0</b><em>Active events nearby</em></div>
+        <div><b id="bQuake">0</b><em>Earthquakes nearby</em></div>
+      </div>
+      <p class="hint" id="scoreHint"></p>
+    </div>
+
+    <div class="panel-block" id="srcHeader" hidden>
+      <h2>Sources (<span id="srcCount">0</span>)</h2>
+    </div>
+    <div class="src-list" id="srcList">
+      <p class="empty">Enter a place above and click <b>Check this area</b> to see a danger score and the news articles behind it.</p>
+    </div>
+  </aside>
+
+  <div class="stage">
+    <div id="map"></div>
+    <div class="banner" id="banner" hidden>
+      <span id="bannerMsg"></span>
+      <button id="bannerX" aria-label="Dismiss">×</button>
+    </div>
+    <div class="legend-box">
+      <h6>Map key</h6>
+      <div><i style="background:var(--info)"></i>Search area</div>
+      <div><i style="background:var(--danger)"></i>Active disaster nearby</div>
+      <div><i style="background:var(--safe)"></i>Minor earthquake nearby</div>
+      <div><i style="background:#14161A"></i>Crime news mentions (approximate)</div>
+    </div>
+    <div class="basemap-toggle">
+      <button class="bm-btn active" id="bmMap">Map</button>
+      <button class="bm-btn" id="bmSat">Satellite</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+(function(){
+"use strict";
+
+var STATUS_COLOR = {low:"#1E8E5A", moderate:"#3B6FE0", high:"#D93025"};
+
+var map = new maplibregl.Map({
+  container:"map", style:"https://tiles.openfreemap.org/styles/positron",
+  center:[-98.5,39.8], zoom:3.2, attributionControl:{compact:true}
+});
+map.addControl(new maplibregl.NavigationControl({showCompass:false}),"top-right");
+var mapReady = false;
+map.on("load", function(){
+  mapReady = true;
+
+  map.addSource("satellite",{type:"raster",tileSize:256,
+    tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+    attribution:"Imagery © Esri"});
+  map.addLayer({id:"satellite-layer",type:"raster",source:"satellite",layout:{visibility:"none"}});
+
+  map.addSource("area",{type:"geojson",data:emptyFC()});
+  map.addLayer({id:"area-fill",type:"fill",source:"area",filter:["==","$type","Polygon"],
+    paint:{"fill-color":"#3B6FE0","fill-opacity":0.12}});
+  map.addLayer({id:"area-line",type:"line",source:"area",filter:["==","$type","Polygon"],
+    paint:{"line-color":"#3B6FE0","line-width":2}});
+  map.addLayer({id:"area-center",type:"circle",source:"area",filter:["==","kind","center"],
+    paint:{"circle-radius":6,"circle-color":"#3B6FE0","circle-stroke-width":2,"circle-stroke-color":"#fff"}});
+
+  map.addSource("events",{type:"geojson",data:emptyFC()});
+  map.addLayer({id:"events-dot",type:"circle",source:"events",
+    paint:{"circle-radius":["+",6,["*",2,["get","mag"]]],"circle-color":["get","color"],
+           "circle-stroke-width":1.5,"circle-stroke-color":"#16181A","circle-opacity":0.85}});
+  map.on("click","events-dot",function(e){
+    var p = e.features[0].properties;
+    new maplibregl.Popup({closeButton:true})
+      .setLngLat(e.features[0].geometry.coordinates)
+      .setHTML('<div style="font-family:sans-serif;font-size:12px;max-width:220px;color:#14161A"><b>'+p.title+'</b><br>'+p.detail+(p.url?'<br><a href="'+p.url+'" target="_blank" rel="noopener" style="color:#3B6FE0;font-weight:600">source →</a>':'')+'</div>')
+      .addTo(map);
+  });
+  map.on("mouseenter","events-dot",function(){ map.getCanvas().style.cursor="pointer"; });
+  map.on("mouseleave","events-dot",function(){ map.getCanvas().style.cursor=""; });
+});
+function emptyFC(){ return {type:"FeatureCollection",features:[]}; }
+
+function banner(msg, warn){
+  var el = document.getElementById("banner");
+  document.getElementById("bannerMsg").textContent = msg;
+  el.className = "banner" + (warn ? " warn" : "");
+  el.hidden = false;
+}
+document.getElementById("bannerX").onclick = function(){ document.getElementById("banner").hidden = true; };
+
+document.getElementById("bmMap").onclick = function(){
+  if(!mapReady) return;
+  map.setLayoutProperty("satellite-layer","visibility","none");
+  document.getElementById("bmMap").classList.add("active");
+  document.getElementById("bmSat").classList.remove("active");
+};
+document.getElementById("bmSat").onclick = function(){
+  if(!mapReady) return;
+  map.setLayoutProperty("satellite-layer","visibility","visible");
+  document.getElementById("bmSat").classList.add("active");
+  document.getElementById("bmMap").classList.remove("active");
+};
+
+/* ---------------- geo helpers ---------------- */
+function toRad(d){ return d*Math.PI/180; }
+function haversineKm(lat1,lon1,lat2,lon2){
+  var R=6371, dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  var a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+function destPoint(lat,lon,bearingDeg,distKm){
+  var R=6371, brng=toRad(bearingDeg), lat1=toRad(lat), lon1=toRad(lon);
+  var lat2 = Math.asin(Math.sin(lat1)*Math.cos(distKm/R) + Math.cos(lat1)*Math.sin(distKm/R)*Math.cos(brng));
+  var lon2 = lon1 + Math.atan2(Math.sin(brng)*Math.sin(distKm/R)*Math.cos(lat1), Math.cos(distKm/R)-Math.sin(lat1)*Math.sin(lat2));
+  return [lon2*180/Math.PI, lat2*180/Math.PI];
+}
+function circlePolygon(lat,lon,radiusKm){
+  var coords = [];
+  for(var i=0;i<=64;i++) coords.push(destPoint(lat,lon,i*360/64,radiusKm));
+  return {type:"Feature",properties:{},geometry:{type:"Polygon",coordinates:[coords]}};
+}
+
+/* ---------------- data fetchers ---------------- */
+function geocode(q){
+  var url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q);
+  return fetch(url).then(function(r){
+    if(!r.ok) throw new Error("Location lookup failed (" + r.status + ")");
+    return r.json();
+  }).then(function(rows){
+    if(!rows.length) throw new Error("Couldn't find that place. Try a more specific name, like \"City, State\" or \"City, Country\".");
+    return {lat:Number(rows[0].lat), lon:Number(rows[0].lon), label:rows[0].display_name};
+  });
+}
+
+function sleep(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+
+/* GDELT asks for at most one request every 5 seconds; retry once on a 429. */
+function gdeltSearch(place, terms, timespan, retriesLeft){
+  if(retriesLeft === undefined) retriesLeft = 1;
+  var q = '"' + place + '" (' + terms.join(" OR ") + ")";
+  var url = "https://api.gdeltproject.org/api/v2/doc/doc?query=" + encodeURIComponent(q) +
+            "&mode=artlist&maxrecords=50&format=json&timespan=" + timespan + "&sort=hybridrel";
+  return fetch(url).then(function(r){
+    if(r.status === 429 && retriesLeft > 0){
+      return sleep(5000).then(function(){ return gdeltSearch(place, terms, timespan, retriesLeft - 1); });
+    }
+    if(!r.ok) throw new Error("news search returned " + r.status);
+    return r.text();
+  }).then(function(txt){
+    if(Array.isArray(txt)) return txt; // came back from a retry, already parsed
+    try { return (JSON.parse(txt).articles || []); }
+    catch(e){ return []; }
+  }).catch(function(){ return []; });
+}
+
+function fetchEonetNearby(lat, lon, radiusKm){
+  return fetch("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=300")
+    .then(function(r){ return r.json(); })
+    .then(function(json){
+      var out = [];
+      (json.events || []).forEach(function(ev){
+        var g = ev.geometry && ev.geometry[ev.geometry.length-1];
+        if(!g || !g.coordinates) return;
+        var lon2, lat2;
+        if(g.type === "Point"){ lon2 = g.coordinates[0]; lat2 = g.coordinates[1]; }
+        else return; // skip polygon-geometry events (storms tracks) for simple distance check
+        var d = haversineKm(lat, lon, lat2, lon2);
+        if(d <= radiusKm){
+          out.push({
+            title: ev.title,
+            category: (ev.categories && ev.categories[0] && ev.categories[0].title) || "Event",
+            lat: lat2, lon: lon2, distanceKm: d,
+            url: (ev.sources && ev.sources[0] && ev.sources[0].url) || null
+          });
+        }
+      });
+      return out;
+    }).catch(function(){ return []; });
+}
+
+function fetchQuakesNearby(lat, lon, radiusKm){
+  return fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.geojson")
+    .then(function(r){ return r.json(); })
+    .then(function(json){
+      var out = [];
+      (json.features || []).forEach(function(f){
+        var c = f.geometry.coordinates, lon2 = c[0], lat2 = c[1];
+        var d = haversineKm(lat, lon, lat2, lon2);
+        if(d <= radiusKm){
+          out.push({
+            title: "M" + f.properties.mag + " — " + f.properties.place,
+            mag: f.properties.mag, lat: lat2, lon: lon2, distanceKm: d,
+            url: f.properties.url, time: f.properties.time
+          });
+        }
+      });
+      return out;
+    }).catch(function(){ return []; });
+}
+
+/* ---------------- scoring ---------------- */
+function computeScore(disasterN, crimeN, eonetN, quakes){
+  var disasterPts = Math.min(disasterN, 40) / 40 * 45;
+  var crimePts = Math.min(crimeN, 40) / 40 * 25;
+  var eonetPts = Math.min(eonetN, 5) * 6;
+  var maxMag = quakes.reduce(function(m,q){ return Math.max(m, q.mag); }, 0);
+  var quakePts = maxMag > 0 ? Math.min(30, Math.max(0, maxMag - 2.5) * 8) : 0;
+  var total = Math.round(Math.min(100, disasterPts + crimePts + eonetPts + quakePts));
+  var band = total < 35 ? "low" : (total < 70 ? "moderate" : "high");
+  return {total:total, band:band};
+}
+
+/* ---------------- render ---------------- */
+var TAG_LABEL = {disaster:"Disaster news", crime:"Crime news", event:"Active hazard", quake:"Earthquake"};
+function renderSources(disasterArts, crimeArts, eonetEvents, quakes){
+  var wrap = document.getElementById("srcList");
+  var all = disasterArts.map(function(a){ return Object.assign({tag:"disaster", title:a.title, url:a.url, meta:(a.domain||"")+" · "+fmtSeendate(a.seendate)}, {}); })
+    .concat(crimeArts.map(function(a){ return {tag:"crime", title:a.title, url:a.url, meta:(a.domain||"")+" · "+fmtSeendate(a.seendate)}; }))
+    .concat(eonetEvents.map(function(e){ return {tag:"event", title:e.title, url:e.url, meta:e.category+" · "+e.distanceKm.toFixed(1)+" km away · NASA EONET"}; }))
+    .concat(quakes.map(function(q){ return {tag:"quake", title:q.title, url:q.url, meta:q.distanceKm.toFixed(1)+" km away · USGS"}; }));
+
+  var seen = new Set();
+  all = all.filter(function(a){ var k = a.url || a.title; if(seen.has(k)) return false; seen.add(k); return true; });
+
+  document.getElementById("srcHeader").hidden = false;
+  document.getElementById("srcCount").textContent = all.length;
+
+  if(!all.length){
+    wrap.innerHTML = '<p class="empty">Nothing turned up for this place in the last week — the score above should read 0. That\'s a good sign; try widening the radius if you expected results.</p>';
+    return;
+  }
+  wrap.innerHTML = "";
+  all.forEach(function(a){
+    var el = document.createElement(a.url ? "a" : "div");
+    el.className = "src";
+    if(a.url){ el.href = a.url; el.target = "_blank"; el.rel = "noopener"; }
+    el.innerHTML = '<span class="src-tag ' + a.tag + '">' + TAG_LABEL[a.tag] + '</span>' +
+      '<div class="src-title">' + escapeHtml(a.title || "(untitled)") + (a.url ? "" : ' <span style="color:var(--muted);font-weight:400">(no link available)</span>') + '</div>' +
+      '<div class="src-meta">' + escapeHtml(a.meta || "") + '</div>';
+    wrap.appendChild(el);
+  });
+}
+function fmtSeendate(seendate){
+  return seendate ? seendate.slice(0,4)+"-"+seendate.slice(4,6)+"-"+seendate.slice(6,8) : "date unknown";
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+function renderScore(score, disasterN, crimeN, eonetN, quakes){
+  document.getElementById("scoreBlock").hidden = false;
+  var num = document.getElementById("scoreNum");
+  num.textContent = score.total;
+  num.className = "score-num " + (score.band === "low" ? "low" : score.band === "high" ? "high" : "");
+  document.getElementById("scoreBand").textContent =
+    score.band === "low" ? "Low risk" : score.band === "high" ? "High risk" : "Moderate risk";
+  var meter = document.getElementById("scoreMeter");
+  meter.style.width = score.total + "%";
+  meter.className = score.band === "low" ? "low" : score.band === "high" ? "high" : "";
+  document.getElementById("bDisaster").textContent = disasterN;
+  document.getElementById("bCrime").textContent = crimeN;
+  document.getElementById("bEonet").textContent = eonetN;
+  document.getElementById("bQuake").textContent = quakes.length;
+  document.getElementById("scoreHint").textContent =
+    "Based on " + disasterN + " disaster-related and " + crimeN + " crime-related news articles from the past week, " +
+    "plus " + eonetN + " confirmed active event(s) and " + quakes.length + " earthquake(s) within your chosen radius.";
+}
+
+function paintMap(center, radiusKm, eonetEvents, quakes, crimeCount){
+  if(!mapReady) return;
+  map.getSource("area").setData({
+    type:"FeatureCollection",
+    features:[
+      circlePolygon(center.lat, center.lon, radiusKm),
+      {type:"Feature",properties:{kind:"center"},geometry:{type:"Point",coordinates:[center.lon,center.lat]}}
+    ]
+  });
+  var feats = eonetEvents.map(function(e){
+    return {type:"Feature",geometry:{type:"Point",coordinates:[e.lon,e.lat]},
+      properties:{title:e.title,detail:e.category+" · "+e.distanceKm.toFixed(1)+" km away",url:e.url,color:"#D93025",mag:2}};
+  }).concat(quakes.map(function(q){
+    return {type:"Feature",geometry:{type:"Point",coordinates:[q.lon,q.lat]},
+      properties:{title:q.title,detail:q.distanceKm.toFixed(1)+" km away",url:q.url,
+        color: q.mag >= 5 ? "#D93025" : "#1E8E5A", mag:q.mag}};
+  }));
+  /* News search has no per-article coordinates, so this is one aggregate marker at the
+     searched place — not a claim about exactly where any incident happened. */
+  if(crimeCount > 0){
+    var offset = destPoint(center.lat, center.lon, 210, Math.min(radiusKm*0.15, 1.2));
+    feats.push({type:"Feature",geometry:{type:"Point",coordinates:offset},
+      properties:{title:crimeCount + " crime-related article(s) mention this area",
+        detail:"Approximate — news search doesn't give exact incident locations. See Sources list for articles.",
+        url:null, color:"#14161A", mag: Math.min(4, 2+crimeCount/10)}});
+  }
+  map.getSource("events").setData({type:"FeatureCollection",features:feats});
+
+  var bounds = new maplibregl.LngLatBounds();
+  circlePolygon(center.lat, center.lon, radiusKm).geometry.coordinates[0].forEach(function(c){ bounds.extend(c); });
+  map.fitBounds(bounds, {padding:60, duration:800});
+}
+
+/* ---------------- main flow ---------------- */
+function runSearch(){
+  var city = document.getElementById("cityInput").value.trim();
+  if(!city){ banner("Type a city or place name first.", true); return; }
+  var radiusKm = Number(document.getElementById("radiusSel").value);
+  var btn = document.getElementById("goBtn");
+  btn.disabled = true; btn.textContent = "Checking…";
+  banner("Looking up “" + city + "”…", false);
+
+  var place;
+  geocode(city).then(function(p){
+    place = p;
+    banner("Found " + place.label.split(",").slice(0,3).join(",") + " — searching disaster news…", false);
+    // GDELT allows roughly one request per 5s, so these two run one after another, not in parallel.
+    return gdeltSearch(city, ["earthquake","wildfire","fire","flood","hurricane","tornado","storm","landslide","tsunami","eruption","disaster","evacuation"], "1w");
+  }).then(function(disasterArts){
+    banner("Searching crime news…", false);
+    return sleep(1200).then(function(){
+      return gdeltSearch(city, ["crime","shooting","robbery","assault","homicide","murder","stabbing","theft","burglary","violence"], "1w");
+    }).then(function(crimeArts){
+      banner("Checking live hazard feeds…", false);
+      return Promise.all([
+        Promise.resolve(disasterArts),
+        Promise.resolve(crimeArts),
+        fetchEonetNearby(place.lat, place.lon, radiusKm),
+        fetchQuakesNearby(place.lat, place.lon, radiusKm)
+      ]);
+    });
+  }).then(function(results){
+    var disasterArts = results[0], crimeArts = results[1], eonetEvents = results[2], quakes = results[3];
+    var score = computeScore(disasterArts.length, crimeArts.length, eonetEvents.length, quakes);
+    renderScore(score, disasterArts.length, crimeArts.length, eonetEvents.length, quakes);
+    renderSources(disasterArts, crimeArts, eonetEvents, quakes);
+    paintMap(place, radiusKm, eonetEvents, quakes, crimeArts.length);
+    banner("Done — showing results for " + place.label.split(",").slice(0,3).join(","), false);
+  }).catch(function(err){
+    banner(err.message || "Something went wrong.", true);
+  }).finally(function(){
+    btn.disabled = false; btn.textContent = "Check this area";
+  });
+}
+
+document.getElementById("goBtn").onclick = runSearch;
+document.getElementById("cityInput").addEventListener("keydown", function(e){ if(e.key === "Enter") runSearch(); });
+})();
+</script>
+</body>
+</html>

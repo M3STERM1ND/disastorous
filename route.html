@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Route Planner — Disastorous</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Public+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<style>
+:root{
+  --bg:#F1F0EA; --surface:#FFFFFF; --surface-hi:#F8F7F3;
+  --ink:#14161A; --muted:#5B6066; --hairline:#D6D2C7;
+  --safe:#1E8E5A; --info:#3B6FE0; --danger:#D93025;
+  --f-display:"Archivo",system-ui,sans-serif;
+  --f-body:"Public Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#111316; --surface:#1B1E22; --surface-hi:#22262B;
+    --ink:#F0EFEA; --muted:#9BA1A8; --hairline:#2C3036;
+    --safe:#2FA968; --info:#5B8DEF; --danger:#E4483A;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--info);outline-offset:2px}
+
+.masthead{display:flex;align-items:center;justify-content:space-between;padding:12px 22px;border-bottom:1px solid var(--ink);background:var(--surface-hi);flex:none}
+.mark{display:flex;align-items:baseline;gap:9px;text-decoration:none}
+.mark-word{font-family:var(--f-display);font-variation-settings:"wdth" 118,"wght" 800;font-size:20px;letter-spacing:.04em;text-transform:uppercase}
+.mark-word .dot{color:var(--danger)}
+.mark-tag{font-family:var(--f-mono);font-size:10px;color:var(--muted);letter-spacing:.08em}
+.nav{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.nav a{font-family:var(--f-mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;text-decoration:none;color:var(--muted);padding:7px 12px;border:1px solid var(--hairline)}
+.nav a.active{background:var(--ink);color:var(--surface-hi);border-color:var(--ink)}
+
+.shell{flex:1;display:grid;grid-template-columns:380px 1fr;min-height:0}
+.panel{border-right:1px solid var(--ink);background:var(--surface);display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+.panel-block{padding:16px 18px;border-bottom:1px solid var(--hairline)}
+.panel-block h2{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px}
+label.fld{display:block;margin-bottom:10px}
+label.fld span{display:block;font-family:var(--f-mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+input[type=text]{width:100%;font-family:var(--f-mono);font-size:13px;padding:9px 10px;border:1px solid var(--hairline);background:var(--surface-hi);color:var(--ink)}
+input:focus{border-color:var(--info);outline:none}
+.swap-row{display:flex;justify-content:center;margin:-4px 0 8px}
+.swap-btn{font-family:var(--f-mono);font-size:11px;background:var(--surface-hi);border:1px solid var(--hairline);padding:3px 10px;cursor:pointer;color:var(--muted)}
+.swap-btn:hover{color:var(--ink);border-color:var(--ink)}
+.pill{font-family:var(--f-mono);font-size:12px;letter-spacing:.05em;text-transform:uppercase;padding:11px 12px;border:1px solid var(--ink);background:var(--info);color:#fff;cursor:pointer;width:100%;box-shadow:3px 3px 0 var(--ink)}
+.pill:hover{transform:translate(1px,1px);box-shadow:2px 2px 0 var(--ink)}
+.pill:disabled{opacity:.5;cursor:not-allowed}
+.hint{font-family:var(--f-mono);font-size:10px;color:var(--muted);line-height:1.7;margin-top:8px}
+
+.tabs{display:flex;border:1px solid var(--ink);margin-bottom:0}
+.tab{flex:1;font-family:var(--f-mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:11px 6px;background:var(--surface-hi);border:none;cursor:pointer;color:var(--muted);border-right:1px solid var(--ink)}
+.tab:last-child{border-right:none}
+.tab.active{color:#fff}
+.tab[data-mode=fastest].active{background:var(--info)}
+.tab[data-mode=eco].active{background:var(--safe)}
+.tab[data-mode=safest].active{background:var(--ink)}
+
+.route-stats{padding:16px 18px;border-bottom:1px solid var(--hairline)}
+.route-stats[hidden]{display:none}
+.stat-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.stat-num{font-family:var(--f-display);font-variation-settings:"wdth" 96,"wght" 780;font-size:30px}
+.stat-label{font-family:var(--f-mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.route-note{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.5;padding:10px 12px;background:var(--surface-hi);border-left:3px solid var(--hairline)}
+.route-note.warn{border-color:var(--danger);color:var(--ink)}
+.route-note.ok{border-color:var(--safe);color:var(--ink)}
+
+.empty{padding:24px 18px;font-family:var(--f-mono);font-size:11px;color:var(--muted);line-height:1.8}
+
+.stage{position:relative;min-height:0}
+#map{position:absolute;inset:0}
+.maplibregl-ctrl-attrib{font-family:var(--f-mono);font-size:9px}
+.maplibregl-popup-content{background:#fff;color:#14161A}
+.maplibregl-popup-close-button{color:#14161A;font-size:16px}
+.banner{position:absolute;top:12px;left:12px;right:12px;z-index:5;background:var(--ink);color:var(--surface-hi);padding:9px 14px;font-family:var(--f-mono);font-size:11px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.banner.warn{background:var(--danger)}
+.banner button{background:none;border:none;color:inherit;cursor:pointer;font-size:14px}
+.banner[hidden]{display:none}
+.legend-box{position:absolute;right:12px;bottom:12px;z-index:5;background:var(--surface-hi);border:1px solid var(--ink);padding:10px 13px}
+.legend-box h6{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;font-weight:600}
+.legend-box div{font-family:var(--f-mono);font-size:10px;line-height:1.9;display:flex;align-items:center;gap:7px}
+.legend-box i{width:16px;height:3px;display:block}
+.basemap-toggle{position:absolute;left:12px;bottom:12px;z-index:5;display:flex;border:1px solid var(--ink);background:var(--surface-hi)}
+.bm-btn{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;padding:7px 12px;border:none;background:transparent;color:var(--ink);cursor:pointer}
+.bm-btn.active{background:var(--ink);color:var(--surface-hi)}
+.bm-btn:not(:last-child){border-right:1px solid var(--ink)}
+
+@media (max-width:860px){
+  body{overflow:auto}
+  .shell{grid-template-columns:1fr;height:auto}
+  .panel{border-right:none;border-bottom:1px solid var(--ink)}
+  .stage{height:60vh}
+  .legend-box{display:none}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <a class="mark" href="index.html">
+    <span class="mark-word">Disastorous<span class="dot">.</span></span>
+    <span class="mark-tag">ROUTE PLANNER</span>
+  </a>
+  <nav class="nav">
+    <a href="search.html">Local search</a>
+    <a href="global.html">Global view</a>
+    <a href="route.html" class="active">Route planner</a>
+  </nav>
+</header>
+
+<div class="shell">
+  <aside class="panel">
+    <div class="panel-block">
+      <h2>Plan a trip</h2>
+      <label class="fld">
+        <span>Start</span>
+        <input type="text" id="startInput" placeholder="e.g. Oakland, CA" autocomplete="off">
+      </label>
+      <div class="swap-row"><button class="swap-btn" id="swapBtn" title="Swap start and end">⇅ swap</button></div>
+      <label class="fld">
+        <span>Destination</span>
+        <input type="text" id="endInput" placeholder="e.g. San Francisco, CA" autocomplete="off">
+      </label>
+      <button class="pill" id="goBtn">Find routes</button>
+      <p class="hint">We compute a fastest route, a lower-emission route (walking or cycling when the distance allows it), and a route chosen to stay as far as possible from real active hazards — all from free public routing &amp; hazard data.</p>
+    </div>
+
+    <div class="tabs" id="tabs" hidden>
+      <button class="tab active" data-mode="fastest">Fastest</button>
+      <button class="tab" data-mode="eco">Eco-friendly</button>
+      <button class="tab" data-mode="safest">Safest</button>
+    </div>
+    <div class="route-stats" id="routeStats" hidden>
+      <div class="stat-row">
+        <div><span class="stat-num" id="statDist">—</span><br><span class="stat-label">Distance</span></div>
+        <div><span class="stat-num" id="statTime">—</span><br><span class="stat-label">Time</span></div>
+      </div>
+      <div class="route-note" id="routeNote"></div>
+    </div>
+    <div class="empty" id="emptyState">Enter a start and destination above and click <b>Find routes</b>.</div>
+  </aside>
+
+  <div class="stage">
+    <div id="map"></div>
+    <div class="banner" id="banner" hidden>
+      <span id="bannerMsg"></span>
+      <button id="bannerX" aria-label="Dismiss">×</button>
+    </div>
+    <div class="legend-box">
+      <h6>Route key</h6>
+      <div><i style="background:var(--info)"></i>Fastest</div>
+      <div><i style="background:var(--safe)"></i>Eco-friendly</div>
+      <div><i style="background:var(--ink)"></i>Safest</div>
+    </div>
+    <div class="basemap-toggle">
+      <button class="bm-btn active" id="bmMap">Map</button>
+      <button class="bm-btn" id="bmSat">Satellite</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+(function(){
+"use strict";
+
+var MODE_COLOR = {fastest:"#3B6FE0", eco:"#1E8E5A", safest:"#14161A"};
+var state = { routes:null, mode:"fastest", hazards:[] };
+
+var map = new maplibregl.Map({
+  container:"map", style:"https://tiles.openfreemap.org/styles/positron",
+  center:[-98.5,39.8], zoom:3.2, attributionControl:{compact:true}
+});
+map.addControl(new maplibregl.NavigationControl({showCompass:false}),"top-right");
+var mapReady = false;
+map.on("load", function(){
+  mapReady = true;
+
+  map.addSource("satellite",{type:"raster",tileSize:256,
+    tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+    attribution:"Imagery © Esri"});
+  map.addLayer({id:"satellite-layer",type:"raster",source:"satellite",layout:{visibility:"none"}});
+
+  ["fastest","eco","safest"].forEach(function(mode){
+    map.addSource("route-"+mode,{type:"geojson",data:emptyFC()});
+    map.addLayer({id:"route-"+mode+"-line",type:"line",source:"route-"+mode,
+      layout:{"line-join":"round","line-cap":"round"},
+      paint:{"line-color":MODE_COLOR[mode],
+             "line-width": mode === state.mode ? 5 : 2.5,
+             "line-opacity": mode === state.mode ? 0.95 : 0.35,
+             "line-dasharray": mode === state.mode ? [1,0] : [2,1.6]}});
+  });
+
+  map.addSource("markers",{type:"geojson",data:emptyFC()});
+  map.addLayer({id:"markers-dot",type:"circle",source:"markers",
+    paint:{"circle-radius":8,"circle-color":["get","color"],"circle-stroke-width":2,"circle-stroke-color":"#fff"}});
+
+  map.addSource("hazards",{type:"geojson",data:emptyFC()});
+  map.addLayer({id:"hazards-dot",type:"circle",source:"hazards",
+    paint:{"circle-radius":5,"circle-color":"#D93025","circle-opacity":0.55,"circle-stroke-width":1,"circle-stroke-color":"#14161A"}});
+  map.on("click","hazards-dot",function(e){
+    var p = e.features[0].properties;
+    new maplibregl.Popup({closeButton:true}).setLngLat(e.features[0].geometry.coordinates)
+      .setHTML('<div style="font-family:sans-serif;font-size:12px;max-width:220px;color:#14161A"><b>'+p.title+'</b>'+(p.url?'<br><a href="'+p.url+'" target="_blank" rel="noopener" style="color:#3B6FE0;font-weight:600">source →</a>':'')+'</div>')
+      .addTo(map);
+  });
+});
+function emptyFC(){ return {type:"FeatureCollection",features:[]}; }
+
+function banner(msg, warn){
+  var el = document.getElementById("banner");
+  document.getElementById("bannerMsg").textContent = msg;
+  el.className = "banner" + (warn ? " warn" : "");
+  el.hidden = false;
+}
+document.getElementById("bannerX").onclick = function(){ document.getElementById("banner").hidden = true; };
+
+document.getElementById("bmMap").onclick = function(){
+  if(!mapReady) return;
+  map.setLayoutProperty("satellite-layer","visibility","none");
+  document.getElementById("bmMap").classList.add("active");
+  document.getElementById("bmSat").classList.remove("active");
+};
+document.getElementById("bmSat").onclick = function(){
+  if(!mapReady) return;
+  map.setLayoutProperty("satellite-layer","visibility","visible");
+  document.getElementById("bmSat").classList.add("active");
+  document.getElementById("bmMap").classList.remove("active");
+};
+
+document.getElementById("swapBtn").onclick = function(){
+  var a = document.getElementById("startInput"), b = document.getElementById("endInput");
+  var tmp = a.value; a.value = b.value; b.value = tmp;
+};
+
+/* ---------------- geo helpers ---------------- */
+function toRad(d){ return d*Math.PI/180; }
+function haversineKm(lat1,lon1,lat2,lon2){
+  var R=6371, dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  var a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+function geocode(q){
+  var url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q);
+  return fetch(url).then(function(r){ return r.json(); }).then(function(rows){
+    if(!rows.length) throw new Error("Couldn't find \"" + q + "\". Try a more specific name.");
+    return {lat:Number(rows[0].lat), lon:Number(rows[0].lon), label:rows[0].display_name};
+  });
+}
+
+/* ---------------- routing (OSRM public demo server) ---------------- */
+function osrmRoute(profile, a, b, alternatives){
+  var url = "https://router.project-osrm.org/route/v1/" + profile + "/" +
+    a.lon + "," + a.lat + ";" + b.lon + "," + b.lat +
+    "?overview=full&geometries=geojson" + (alternatives ? "&alternatives=true" : "");
+  return fetch(url).then(function(r){ return r.json(); }).then(function(json){
+    if(json.code !== "Ok" || !json.routes || !json.routes.length) throw new Error("No route found between these points.");
+    return json.routes.map(function(r){
+      return {distanceKm: r.distance/1000, durationMin: r.duration/60, coords: r.geometry.coordinates};
+    });
+  });
+}
+
+/* ---------------- hazards ---------------- */
+function loadHazards(){
+  var eonet = fetch("https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=300")
+    .then(function(r){ return r.json(); }).then(function(json){
+      var out = [];
+      (json.events||[]).forEach(function(ev){
+        var g = ev.geometry && ev.geometry[ev.geometry.length-1];
+        if(!g || !g.coordinates || g.type !== "Point") return;
+        out.push({title: ev.title, lat: g.coordinates[1], lon: g.coordinates[0],
+          url: (ev.sources && ev.sources[0] && ev.sources[0].url) || null});
+      });
+      return out;
+    }).catch(function(){ return []; });
+  var quakes = fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson")
+    .then(function(r){ return r.json(); }).then(function(json){
+      return (json.features||[]).map(function(f){
+        return {title:"M"+f.properties.mag+" earthquake — "+f.properties.place,
+          lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0], url:f.properties.url};
+      });
+    }).catch(function(){ return []; });
+  return Promise.all([eonet, quakes]).then(function(r){ return r[0].concat(r[1]); });
+}
+
+/* distance from a route's coordinate list to the nearest hazard, sampling ~40 points along it */
+function nearestHazardToRoute(coords, hazards){
+  if(!hazards.length) return null;
+  var step = Math.max(1, Math.floor(coords.length / 40));
+  var best = null;
+  for(var i=0;i<coords.length;i+=step){
+    var lon = coords[i][0], lat = coords[i][1];
+    hazards.forEach(function(h){
+      var d = haversineKm(lat, lon, h.lat, h.lon);
+      if(!best || d < best.distanceKm) best = {distanceKm:d, hazard:h};
+    });
+  }
+  return best;
+}
+
+/* ---------------- render ---------------- */
+function paintRoute(mode, coords){
+  map.getSource("route-"+mode).setData({type:"Feature",properties:{},geometry:{type:"LineString",coordinates:coords}});
+}
+function setActiveTab(mode){
+  state.mode = mode;
+  ["fastest","eco","safest"].forEach(function(m){
+    map.setPaintProperty("route-"+m+"-line","line-width", m===mode?5:2.5);
+    map.setPaintProperty("route-"+m+"-line","line-opacity", m===mode?0.95:0.3);
+  });
+  document.querySelectorAll(".tab").forEach(function(t){ t.classList.toggle("active", t.dataset.mode===mode); });
+  renderStats();
+}
+document.querySelectorAll(".tab").forEach(function(t){ t.onclick = function(){ setActiveTab(t.dataset.mode); }; });
+
+function renderStats(){
+  if(!state.routes) return;
+  var r = state.routes[state.mode];
+  document.getElementById("statDist").textContent = r.distanceKm.toFixed(1) + " km";
+  document.getElementById("statTime").textContent = r.durationMin < 60
+    ? Math.round(r.durationMin) + " min" : (r.durationMin/60).toFixed(1) + " hr";
+  var note = document.getElementById("routeNote");
+  note.className = "route-note" + (r.noteKind ? " "+r.noteKind : "");
+  note.textContent = r.note || "";
+}
+
+/* ---------------- main flow ---------------- */
+function runPlan(){
+  var startQ = document.getElementById("startInput").value.trim();
+  var endQ = document.getElementById("endInput").value.trim();
+  if(!startQ || !endQ){ banner("Enter both a start and a destination.", true); return; }
+  var btn = document.getElementById("goBtn");
+  btn.disabled = true; btn.textContent = "Finding routes…";
+  banner("Looking up both places…", false);
+
+  var start, end, hazards;
+  Promise.all([geocode(startQ), geocode(endQ)]).then(function(pts){
+    start = pts[0]; end = pts[1];
+    banner("Fetching driving routes and checking hazard feeds…", false);
+    return Promise.all([osrmRoute("driving", start, end, true), loadHazards()]);
+  }).then(function(res){
+    var driveAlts = res[0]; hazards = res[1]; state.hazards = hazards;
+    var straightKm = haversineKm(start.lat, start.lon, end.lat, end.lon);
+
+    var fastest = driveAlts[0];
+    fastest.note = "Shortest travel time by road, using live public routing data.";
+
+    // Safest: among driving alternatives, pick the one that stays furthest from any known hazard.
+    var scored = driveAlts.map(function(r){ return {r:r, nearest: nearestHazardToRoute(r.coords, hazards)}; });
+    scored.sort(function(a,b){
+      var da = a.nearest ? a.nearest.distanceKm : Infinity, db = b.nearest ? b.nearest.distanceKm : Infinity;
+      return db - da;
+    });
+    var safest = scored[0].r;
+    var safestNearest = scored[0].nearest;
+    if(driveAlts.length === 1){
+      safest.note = safestNearest
+        ? "Only one practical driving route exists here. The nearest active hazard (\""+safestNearest.hazard.title+"\") is about "+safestNearest.distanceKm.toFixed(0)+" km from this route."
+        : "Only one practical driving route exists here, and no active hazard was found near it.";
+      safest.noteKind = safestNearest && safestNearest.distanceKm < 50 ? "warn" : "ok";
+    } else {
+      safest.note = safestNearest
+        ? "Chosen from " + driveAlts.length + " route options as the one that stays furthest from known hazards — nearest is \""+safestNearest.hazard.title+"\", about "+safestNearest.distanceKm.toFixed(0)+" km away."
+        : "Chosen from " + driveAlts.length + " route options. No active hazard found near any of them.";
+      safest.noteKind = "ok";
+    }
+
+    // Eco: walk if very short, bike if short-ish, else same as fastest (driving has no low-emission alternative here).
+    var ecoPromise;
+    if(straightKm <= 3){
+      ecoPromise = osrmRoute("foot", start, end, false).then(function(r){
+        r[0].note = "Walking — zero tailpipe emissions. About " + Math.round(r[0].durationMin) + " min on foot.";
+        r[0].noteKind = "ok";
+        return r[0];
+      }).catch(function(){ return Object.assign({}, fastest, {note:"Walking route unavailable here — showing the fastest driving route instead.", noteKind:"warn"}); });
+    } else if(straightKm <= 20){
+      ecoPromise = osrmRoute("bike", start, end, false).then(function(r){
+        r[0].note = "Cycling — far lower emissions than driving. About " + Math.round(r[0].durationMin) + " min by bike.";
+        r[0].noteKind = "ok";
+        return r[0];
+      }).catch(function(){ return Object.assign({}, fastest, {note:"Cycling route unavailable here — showing the fastest driving route instead.", noteKind:"warn"}); });
+    } else {
+      ecoPromise = Promise.resolve(Object.assign({}, fastest, {
+        note:"This trip is too long for a walking/cycling suggestion (" + straightKm.toFixed(0) + " km straight-line). Showing the fastest driving route — with no lower-emission road alternative available from free routing data.",
+        noteKind:"warn"
+      }));
+    }
+
+    return ecoPromise.then(function(eco){
+      state.routes = {fastest:fastest, eco:eco, safest:safest};
+      paintRoute("fastest", fastest.coords);
+      paintRoute("eco", eco.coords);
+      paintRoute("safest", safest.coords);
+
+      map.getSource("markers").setData({type:"FeatureCollection",features:[
+        {type:"Feature",geometry:{type:"Point",coordinates:[start.lon,start.lat]},properties:{color:"#1E8E5A"}},
+        {type:"Feature",geometry:{type:"Point",coordinates:[end.lon,end.lat]},properties:{color:"#D93025"}}
+      ]});
+      map.getSource("hazards").setData({type:"FeatureCollection",features:hazards.map(function(h){
+        return {type:"Feature",geometry:{type:"Point",coordinates:[h.lon,h.lat]},properties:{title:h.title,url:h.url}};
+      })});
+
+      var bounds = new maplibregl.LngLatBounds();
+      fastest.coords.forEach(function(c){ bounds.extend(c); });
+      safest.coords.forEach(function(c){ bounds.extend(c); });
+      map.fitBounds(bounds, {padding:70, duration:800});
+
+      document.getElementById("emptyState").hidden = true;
+      document.getElementById("tabs").hidden = false;
+      document.getElementById("routeStats").hidden = false;
+      setActiveTab("fastest");
+      banner("Routes ready from " + start.label.split(",")[0] + " to " + end.label.split(",")[0] + ".", false);
+    });
+  }).catch(function(err){
+    banner(err.message || "Something went wrong finding a route.", true);
+  }).finally(function(){
+    btn.disabled = false; btn.textContent = "Find routes";
+  });
+}
+document.getElementById("goBtn").onclick = runPlan;
+[document.getElementById("startInput"), document.getElementById("endInput")].forEach(function(inp){
+  inp.addEventListener("keydown", function(e){ if(e.key === "Enter") runPlan(); });
+});
+})();
+</script>
+</body>
+</html>
