@@ -40,7 +40,7 @@ a{color:inherit}
 .nav a.active{background:var(--ink);color:var(--surface-hi);border-color:var(--ink)}
 
 .shell{flex:1;display:grid;grid-template-columns:380px 1fr;min-height:0}
-.panel{border-right:1px solid var(--ink);background:var(--surface);display:flex;flex-direction:column;min-height:0}
+.panel{border-right:1px solid var(--ink);background:var(--surface);display:flex;flex-direction:column;min-height:0;overflow-y:auto}
 .panel-block{padding:16px 18px;border-bottom:1px solid var(--hairline)}
 .panel-block h2{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:12px}
 label.fld{display:block;margin-bottom:10px}
@@ -68,7 +68,7 @@ select:focus,input:focus{border-color:var(--info);outline:none}
 .breakdown b{display:block;font-family:var(--f-display);font-size:20px}
 .breakdown em{font-style:normal;font-family:var(--f-mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:block;margin-top:4px}
 
-.src-list{flex:1;overflow-y:auto;min-height:0}
+.src-list{flex:none}
 .src{display:block;padding:12px 18px;border-bottom:1px solid var(--hairline);text-decoration:none;color:inherit}
 .src:hover{background:var(--surface-hi)}
 .src-tag{display:inline-block;font-family:var(--f-mono);font-size:9px;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;margin-bottom:6px;color:#fff}
