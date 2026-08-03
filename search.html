@@ -12,7 +12,7 @@
 :root{
   --bg:#F1F0EA; --surface:#FFFFFF; --surface-hi:#F8F7F3;
   --ink:#14161A; --muted:#5B6066; --hairline:#D6D2C7;
-  --safe:#1E8E5A; --info:#3B6FE0; --danger:#D93025;
+  --safe:#1E8E5A; --info:#3B6FE0; --danger:#D93025; --community:#8E5CD0;
   --f-display:"Archivo",system-ui,sans-serif;
   --f-body:"Public Sans",system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,monospace;
@@ -21,7 +21,7 @@
   :root{
     --bg:#111316; --surface:#1B1E22; --surface-hi:#22262B;
     --ink:#F0EFEA; --muted:#9BA1A8; --hairline:#2C3036;
-    --safe:#2FA968; --info:#5B8DEF; --danger:#E4483A;
+    --safe:#2FA968; --info:#5B8DEF; --danger:#E4483A; --community:#A57EDC;
   }
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -79,6 +79,44 @@ select:focus,input:focus{border-color:var(--info);outline:none}
 .src-title{font-size:13px;font-weight:500;line-height:1.4}
 .src-meta{font-family:var(--f-mono);font-size:10px;color:var(--muted);margin-top:5px}
 .empty{padding:30px 18px;font-family:var(--f-mono);font-size:11.5px;color:var(--muted);line-height:1.8}
+
+/* account / auth */
+.acct-row{display:flex;justify-content:space-between;align-items:center;font-family:var(--f-mono);font-size:11.5px}
+.acct-email{color:var(--muted);word-break:break-all;margin-right:8px}
+textarea{width:100%;font-family:var(--f-body);font-size:13px;padding:9px 10px;border:1px solid var(--hairline);background:var(--surface-hi);color:var(--ink);resize:vertical;min-height:64px}
+textarea:focus,select:focus{border-color:var(--info);outline:none}
+input[type=file]{width:100%;font-family:var(--f-mono);font-size:11px;margin-top:4px}
+.loc-status{font-family:var(--f-mono);font-size:10px;color:var(--muted);margin:8px 0}
+.loc-status b{color:var(--ink)}
+
+/* community posts */
+.post{padding:12px 18px;border-bottom:1px solid var(--hairline)}
+.post-head{display:flex;justify-content:space-between;font-family:var(--f-mono);font-size:10px;color:var(--muted);margin-bottom:5px}
+.post-body{font-size:13px;line-height:1.4}
+.post img{width:100%;border:1px solid var(--hairline);margin-top:8px;display:block}
+
+/* chat widget */
+.chat-fab{position:fixed;right:20px;bottom:20px;z-index:50;width:52px;height:52px;border-radius:50%;
+  background:var(--info);color:#fff;border:1px solid var(--ink);box-shadow:3px 3px 0 var(--ink);
+  font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.chat-fab:hover{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--ink)}
+.chat-panel{position:fixed;right:20px;bottom:84px;z-index:50;width:min(340px,calc(100vw - 40px));
+  height:min(460px,calc(100vh - 140px));background:var(--surface);border:1px solid var(--ink);
+  box-shadow:5px 5px 0 rgba(22,24,26,.25);display:flex;flex-direction:column}
+.chat-panel[hidden]{display:none}
+.chat-head{padding:11px 14px;border-bottom:1px solid var(--ink);background:var(--surface-hi);
+  display:flex;justify-content:space-between;align-items:center;font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.chat-head button{background:none;border:none;font-size:16px;cursor:pointer;color:var(--muted)}
+.chat-log{flex:1;overflow-y:auto;min-height:0;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.chat-msg{font-size:13px;line-height:1.4;max-width:88%;padding:8px 11px}
+.chat-msg.user{align-self:flex-end;background:var(--info);color:#fff}
+.chat-msg.bot{align-self:flex-start;background:var(--surface-hi);border:1px solid var(--hairline)}
+.chat-msg.err{align-self:flex-start;background:var(--danger);color:#fff}
+.chat-input-row{display:flex;border-top:1px solid var(--hairline)}
+.chat-input-row input{flex:1;border:none;padding:11px 12px;font-family:var(--f-body);font-size:13px;background:var(--surface)}
+.chat-input-row input:focus{outline:none}
+.chat-input-row button{border:none;background:var(--info);color:#fff;padding:0 16px;cursor:pointer;font-family:var(--f-mono);font-size:11px;text-transform:uppercase}
+.chat-input-row button:disabled{opacity:.5;cursor:not-allowed}
 
 .stage{position:relative;min-height:0}
 #map{position:absolute;inset:0}
@@ -166,6 +204,41 @@ select:focus,input:focus{border-color:var(--info);outline:none}
     <div class="src-list" id="srcList">
       <p class="empty">Enter a place above and click <b>Check this area</b> to see a danger score and the news articles behind it.</p>
     </div>
+
+    <div class="panel-block">
+      <h2>Account</h2>
+      <div id="authSignedOut">
+        <label class="fld">
+          <span>Email</span>
+          <input type="text" id="authEmail" placeholder="you@example.com" autocomplete="off">
+        </label>
+        <button class="pill pill-go" id="authSendBtn" style="width:100%">Send sign-in link</button>
+        <p class="hint">No password — we'll email you a one-click sign-in link. You need an account to post a community report.</p>
+      </div>
+      <div id="authSignedIn" hidden>
+        <div class="acct-row"><span class="acct-email" id="authEmailShown"></span><button class="pill" id="authSignOutBtn">Sign out</button></div>
+      </div>
+    </div>
+
+    <div class="panel-block" id="reportBlock" hidden>
+      <h2>Report something nearby</h2>
+      <label class="fld">
+        <span>What's going on?</span>
+        <textarea id="reportBody" maxlength="500" placeholder="Describe what you're seeing at this location…"></textarea>
+      </label>
+      <label class="fld">
+        <span>Photo (optional)</span>
+        <input type="file" id="reportPhoto" accept="image/*">
+      </label>
+      <p class="loc-status" id="reportLoc">Getting your location…</p>
+      <button class="pill pill-go" id="reportSubmitBtn" style="width:100%" disabled>Post report</button>
+      <p class="hint">Posts are public and show your account email. Don't post exact home addresses or anything you wouldn't want visible to everyone.</p>
+    </div>
+
+    <div class="panel-block" id="postsHeader" hidden>
+      <h2>Community reports (<span id="postsCount">0</span>)</h2>
+    </div>
+    <div id="postsList"></div>
   </aside>
 
   <div class="stage">
@@ -180,6 +253,7 @@ select:focus,input:focus{border-color:var(--info);outline:none}
       <div><i style="background:var(--danger)"></i>Active disaster nearby</div>
       <div><i style="background:var(--safe)"></i>Minor earthquake nearby</div>
       <div><i style="background:#14161A"></i>Crime news mentions (approximate)</div>
+      <div><i style="background:var(--community)"></i>Community report</div>
     </div>
     <div class="basemap-toggle">
       <button class="bm-btn active" id="bmMap">Map</button>
@@ -188,12 +262,31 @@ select:focus,input:focus{border-color:var(--info);outline:none}
   </div>
 </div>
 
+<button class="chat-fab" id="chatFab" aria-label="Ask about this search's news">💬</button>
+<div class="chat-panel" id="chatPanel" hidden>
+  <div class="chat-head">
+    <span>Ask about this search</span>
+    <button id="chatClose" aria-label="Close chat">×</button>
+  </div>
+  <div class="chat-log" id="chatLog">
+    <div class="chat-msg bot">Run a search first, then ask me things like "why is this flagged?" or "what's the wildfire about?" — I'll answer from the articles and hazards actually pulled up.</div>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" id="chatInput" placeholder="Ask a question…">
+    <button id="chatSend">Send</button>
+  </div>
+</div>
+
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supa.js"></script>
 <script>
 (function(){
 "use strict";
 
 var STATUS_COLOR = {low:"#1E8E5A", moderate:"#3B6FE0", high:"#D93025"};
+var lastSearch = null;
+var myLocation = null;
 
 var map = new maplibregl.Map({
   container:"map", style:"https://tiles.openfreemap.org/styles/positron",
@@ -230,6 +323,18 @@ map.on("load", function(){
   });
   map.on("mouseenter","events-dot",function(){ map.getCanvas().style.cursor="pointer"; });
   map.on("mouseleave","events-dot",function(){ map.getCanvas().style.cursor=""; });
+
+  map.addSource("posts",{type:"geojson",data:emptyFC()});
+  map.addLayer({id:"posts-dot",type:"circle",source:"posts",
+    paint:{"circle-radius":7,"circle-color":"#8E5CD0","circle-stroke-width":1.5,"circle-stroke-color":"#fff"}});
+  map.on("click","posts-dot",function(e){
+    var p = e.features[0].properties;
+    new maplibregl.Popup({closeButton:true}).setLngLat(e.features[0].geometry.coordinates)
+      .setHTML('<div style="font-family:sans-serif;font-size:12px;max-width:220px;color:#14161A"><b>'+p.author+'</b><br>'+p.body+(p.img?'<br><img src="'+p.img+'" style="width:100%;margin-top:6px">':'')+'</div>')
+      .addTo(map);
+  });
+  map.on("mouseenter","posts-dot",function(){ map.getCanvas().style.cursor="pointer"; });
+  map.on("mouseleave","posts-dot",function(){ map.getCanvas().style.cursor=""; });
 });
 function emptyFC(){ return {type:"FeatureCollection",features:[]}; }
 
@@ -484,6 +589,11 @@ function runSearch(){
     renderScore(score, disasterArts.length, crimeArts.length, eonetEvents.length, quakes);
     renderSources(disasterArts, crimeArts, eonetEvents, quakes);
     paintMap(place, radiusKm, eonetEvents, quakes, crimeArts.length);
+    lastSearch = {
+      place: place, radiusKm: radiusKm, score: score,
+      disasterArts: disasterArts, crimeArts: crimeArts, eonetEvents: eonetEvents, quakes: quakes
+    };
+    refreshNearbyPosts(place, radiusKm);
     banner("Done — showing results for " + place.label.split(",").slice(0,3).join(","), false);
   }).catch(function(err){
     banner(err.message || "Something went wrong.", true);
@@ -494,6 +604,194 @@ function runSearch(){
 
 document.getElementById("goBtn").onclick = runSearch;
 document.getElementById("cityInput").addEventListener("keydown", function(e){ if(e.key === "Enter") runSearch(); });
+
+/* ---------------- auth ---------------- */
+function updateAuthUI(session){
+  var signedIn = !!(session && session.user);
+  document.getElementById("authSignedOut").hidden = signedIn;
+  document.getElementById("authSignedIn").hidden = !signedIn;
+  document.getElementById("reportBlock").hidden = !signedIn;
+  if(signedIn){
+    document.getElementById("authEmailShown").textContent = session.user.email;
+    requestMyLocation();
+  }
+}
+supa.auth.getSession().then(function(res){ updateAuthUI(res.data && res.data.session); });
+supa.auth.onAuthStateChange(function(event, session){ updateAuthUI(session); });
+
+document.getElementById("authSendBtn").onclick = function(){
+  var email = document.getElementById("authEmail").value.trim();
+  if(!email){ banner("Enter an email first.", true); return; }
+  var btn = document.getElementById("authSendBtn");
+  btn.disabled = true; btn.textContent = "Sending…";
+  supa.auth.signInWithOtp({ email: email, options: { emailRedirectTo: window.location.href } })
+    .then(function(res){
+      if(res.error){ banner("Couldn't send sign-in link: " + res.error.message, true); return; }
+      banner("Check your email for a sign-in link.", false);
+    })
+    .finally(function(){ btn.disabled = false; btn.textContent = "Send sign-in link"; });
+};
+document.getElementById("authSignOutBtn").onclick = function(){ supa.auth.signOut(); };
+
+/* ---------------- geolocation for reports ---------------- */
+function requestMyLocation(){
+  var status = document.getElementById("reportLoc");
+  var submitBtn = document.getElementById("reportSubmitBtn");
+  if(!navigator.geolocation){
+    status.textContent = "Location isn't available in this browser — can't attach a location to your report.";
+    return;
+  }
+  status.textContent = "Getting your location…";
+  navigator.geolocation.getCurrentPosition(function(pos){
+    myLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    status.innerHTML = "Location captured: <b>" + myLocation.lat.toFixed(4) + ", " + myLocation.lng.toFixed(4) + "</b>";
+    submitBtn.disabled = false;
+  }, function(err){
+    status.textContent = "Couldn't get your location (" + err.message + "). Allow location access to post a report.";
+    submitBtn.disabled = true;
+  }, { enableHighAccuracy:true, timeout:10000 });
+}
+
+/* ---------------- report submission ---------------- */
+document.getElementById("reportSubmitBtn").onclick = function(){
+  var body = document.getElementById("reportBody").value.trim();
+  if(!body){ banner("Write something about what you're seeing first.", true); return; }
+  if(!myLocation){ banner("Location not available yet — try again in a moment.", true); return; }
+  supa.auth.getSession().then(function(res){
+    var session = res.data && res.data.session;
+    if(!session){ banner("Sign in first.", true); return; }
+    var user = session.user;
+    var btn = document.getElementById("reportSubmitBtn");
+    btn.disabled = true; btn.textContent = "Posting…";
+
+    var fileInput = document.getElementById("reportPhoto");
+    var file = fileInput.files && fileInput.files[0];
+    var uploadPromise = Promise.resolve(null);
+    if(file){
+      var path = user.id + "/" + Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+      uploadPromise = supa.storage.from("post-images").upload(path, file).then(function(up){
+        if(up.error) throw new Error("Photo upload failed: " + up.error.message);
+        return supa.storage.from("post-images").getPublicUrl(path).data.publicUrl;
+      });
+    }
+
+    uploadPromise.then(function(imageUrl){
+      return supa.from("posts").insert({
+        user_id: user.id,
+        display_name: user.email,
+        body: body,
+        lat: myLocation.lat,
+        lng: myLocation.lng,
+        image_url: imageUrl
+      });
+    }).then(function(res2){
+      if(res2.error) throw new Error(res2.error.message);
+      document.getElementById("reportBody").value = "";
+      fileInput.value = "";
+      banner("Report posted.", false);
+      if(lastSearch) refreshNearbyPosts(lastSearch.place, lastSearch.radiusKm);
+    }).catch(function(err){
+      banner(err.message || "Couldn't post that report.", true);
+    }).finally(function(){
+      btn.disabled = false; btn.textContent = "Post report";
+    });
+  });
+};
+
+/* ---------------- nearby community posts ---------------- */
+function refreshNearbyPosts(place, radiusKm){
+  supa.from("posts").select("*").order("created_at",{ascending:false}).limit(200)
+    .then(function(res){
+      if(res.error){
+        document.getElementById("postsHeader").hidden = true;
+        document.getElementById("postsList").innerHTML = "";
+        if(mapReady) map.getSource("posts").setData(emptyFC());
+        return;
+      }
+      var nearby = (res.data || []).map(function(p){
+        return Object.assign({}, p, { distanceKm: haversineKm(place.lat, place.lon, p.lat, p.lng) });
+      }).filter(function(p){ return p.distanceKm <= radiusKm; });
+      renderPosts(nearby);
+      paintPosts(nearby);
+    });
+}
+function renderPosts(nearby){
+  document.getElementById("postsHeader").hidden = false;
+  document.getElementById("postsCount").textContent = nearby.length;
+  var wrap = document.getElementById("postsList");
+  if(!nearby.length){ wrap.innerHTML = '<p class="empty">No community reports within this radius yet.</p>'; return; }
+  wrap.innerHTML = "";
+  nearby.forEach(function(p){
+    var el = document.createElement("div");
+    el.className = "post";
+    var when = new Date(p.created_at).toLocaleString();
+    el.innerHTML = '<div class="post-head"><span>' + escapeHtml(p.display_name) + ' · ' + p.distanceKm.toFixed(1) + ' km away</span><span>' + when + '</span></div>' +
+      '<div class="post-body">' + escapeHtml(p.body) + '</div>' +
+      (p.image_url ? '<img src="' + p.image_url + '" alt="">' : "");
+    wrap.appendChild(el);
+  });
+}
+function paintPosts(nearby){
+  if(!mapReady) return;
+  var feats = nearby.map(function(p){
+    return {type:"Feature",geometry:{type:"Point",coordinates:[p.lng,p.lat]},
+      properties:{author:escapeHtml(p.display_name), body:escapeHtml(p.body), img:p.image_url||""}};
+  });
+  map.getSource("posts").setData({type:"FeatureCollection",features:feats});
+}
+
+/* ---------------- chat widget ---------------- */
+var chatHistory = [];
+function buildChatContext(){
+  if(!lastSearch) return "";
+  var lines = [];
+  lines.push("Search: " + lastSearch.place.label + ", radius " + lastSearch.radiusKm + " km. Danger score: " + lastSearch.score.total + "/100 (" + lastSearch.score.band + ").");
+  lastSearch.disasterArts.slice(0,10).forEach(function(a){ lines.push("[Disaster news] " + a.title); });
+  lastSearch.crimeArts.slice(0,10).forEach(function(a){ lines.push("[Crime news] " + a.title); });
+  lastSearch.eonetEvents.forEach(function(e){ lines.push("[Active hazard] " + e.title + " (" + e.category + "), " + e.distanceKm.toFixed(1) + " km away"); });
+  lastSearch.quakes.forEach(function(q){ lines.push("[Earthquake] " + q.title + ", " + q.distanceKm.toFixed(1) + " km away"); });
+  return lines.join("\n");
+}
+function appendChatMsg(role, text){
+  var log = document.getElementById("chatLog");
+  var el = document.createElement("div");
+  el.className = "chat-msg " + role;
+  el.textContent = text;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+function sendChat(){
+  var input = document.getElementById("chatInput");
+  var msg = input.value.trim();
+  if(!msg) return;
+  input.value = "";
+  appendChatMsg("user", msg);
+  var sendBtn = document.getElementById("chatSend");
+  sendBtn.disabled = true;
+  fetch("/api/chat", {
+    method: "POST", headers: {"content-type":"application/json"},
+    body: JSON.stringify({ message: msg, context: buildChatContext(), history: chatHistory })
+  }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok, data:d}; }); })
+    .then(function(res){
+      if(!res.ok){ appendChatMsg("err", (res.data && res.data.error) || "Something went wrong."); return; }
+      appendChatMsg("bot", res.data.reply);
+      chatHistory.push({role:"user", content:msg});
+      chatHistory.push({role:"assistant", content:res.data.reply});
+      chatHistory = chatHistory.slice(-10);
+    })
+    .catch(function(){ appendChatMsg("err", "Couldn't reach the chat service."); })
+    .finally(function(){ sendBtn.disabled = false; });
+}
+document.getElementById("chatFab").onclick = function(){
+  document.getElementById("chatPanel").hidden = false;
+  document.getElementById("chatFab").hidden = true;
+};
+document.getElementById("chatClose").onclick = function(){
+  document.getElementById("chatPanel").hidden = true;
+  document.getElementById("chatFab").hidden = false;
+};
+document.getElementById("chatSend").onclick = sendChat;
+document.getElementById("chatInput").addEventListener("keydown", function(e){ if(e.key === "Enter") sendChat(); });
 })();
 </script>
 </body>
