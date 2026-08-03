@@ -81,6 +81,10 @@ select:focus,input:focus{border-color:var(--info);outline:none}
 .empty{padding:30px 18px;font-family:var(--f-mono);font-size:11.5px;color:var(--muted);line-height:1.8}
 
 /* account / auth */
+.auth-tabs{display:flex;border:1px solid var(--ink);margin-bottom:14px}
+.auth-tab{flex:1;font-family:var(--f-mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:9px 6px;background:var(--surface-hi);border:none;cursor:pointer;color:var(--muted)}
+.auth-tab:first-child{border-right:1px solid var(--ink)}
+.auth-tab.active{background:var(--info);color:#fff}
 .acct-row{display:flex;justify-content:space-between;align-items:center;font-family:var(--f-mono);font-size:11.5px}
 .acct-email{color:var(--muted);word-break:break-all;margin-right:8px}
 textarea{width:100%;font-family:var(--f-body);font-size:13px;padding:9px 10px;border:1px solid var(--hairline);background:var(--surface-hi);color:var(--ink);resize:vertical;min-height:64px}
@@ -211,12 +215,24 @@ input[type=file]{width:100%;font-family:var(--f-mono);font-size:11px;margin-top:
     <div class="panel-block">
       <h2>Account</h2>
       <div id="authSignedOut">
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-mode="login">Log in</button>
+          <button class="auth-tab" data-mode="signup">Create account</button>
+        </div>
         <label class="fld">
           <span>Email</span>
-          <input type="text" id="authEmail" placeholder="you@example.com" autocomplete="off">
+          <input type="text" id="authEmail" placeholder="you@example.com" autocomplete="username">
         </label>
-        <button class="pill pill-go" id="authSendBtn" style="width:100%">Send sign-in link</button>
-        <p class="hint">No password — we'll email you a one-click sign-in link. You need an account to post a community report.</p>
+        <label class="fld">
+          <span>Password</span>
+          <input type="password" id="authPassword" placeholder="••••••••" autocomplete="current-password">
+        </label>
+        <label class="fld" id="authConfirmRow" hidden>
+          <span>Confirm password</span>
+          <input type="password" id="authPasswordConfirm" placeholder="••••••••" autocomplete="new-password">
+        </label>
+        <button class="pill pill-go" id="authSubmitBtn" style="width:100%">Log in</button>
+        <p class="hint" id="authHint">Log in with your email and password. You need an account to post a community report.</p>
       </div>
       <div id="authSignedIn" hidden>
         <div class="acct-row"><span class="acct-email" id="authEmailShown"></span><button class="pill" id="authSignOutBtn">Sign out</button></div>
@@ -689,17 +705,40 @@ document.getElementById("myPostsList").addEventListener("click", function(e){
 supa.auth.getSession().then(function(res){ updateAuthUI(res.data && res.data.session); });
 supa.auth.onAuthStateChange(function(event, session){ updateAuthUI(session); });
 
-document.getElementById("authSendBtn").onclick = function(){
+var authMode = "login";
+document.querySelectorAll(".auth-tab").forEach(function(t){
+  t.onclick = function(){
+    authMode = t.dataset.mode;
+    document.querySelectorAll(".auth-tab").forEach(function(x){ x.classList.toggle("active", x === t); });
+    document.getElementById("authConfirmRow").hidden = authMode !== "signup";
+    document.getElementById("authSubmitBtn").textContent = authMode === "signup" ? "Create account" : "Log in";
+    document.getElementById("authHint").textContent = authMode === "signup"
+      ? "Choose a password (at least 6 characters). You need an account to post a community report."
+      : "Log in with your email and password. You need an account to post a community report.";
+  };
+});
+
+document.getElementById("authSubmitBtn").onclick = function(){
   var email = document.getElementById("authEmail").value.trim();
-  if(!email){ banner("Enter an email first.", true); return; }
-  var btn = document.getElementById("authSendBtn");
-  btn.disabled = true; btn.textContent = "Sending…";
-  supa.auth.signInWithOtp({ email: email, options: { emailRedirectTo: window.location.href } })
-    .then(function(res){
-      if(res.error){ banner("Couldn't send sign-in link: " + res.error.message, true); return; }
-      banner("Check your email for a sign-in link.", false);
-    })
-    .finally(function(){ btn.disabled = false; btn.textContent = "Send sign-in link"; });
+  var password = document.getElementById("authPassword").value;
+  if(!email || !password){ banner("Enter an email and password.", true); return; }
+  var btn = document.getElementById("authSubmitBtn");
+
+  if(authMode === "signup"){
+    var confirmPw = document.getElementById("authPasswordConfirm").value;
+    if(password.length < 6){ banner("Password must be at least 6 characters.", true); return; }
+    if(password !== confirmPw){ banner("Passwords don't match.", true); return; }
+    btn.disabled = true; btn.textContent = "Creating…";
+    supa.auth.signUp({ email: email, password: password }).then(function(res){
+      if(res.error){ banner("Couldn't create account: " + res.error.message, true); return; }
+      banner(res.data.session ? "Account created — you're signed in." : "Account created — check your email to confirm before logging in.", false);
+    }).finally(function(){ btn.disabled = false; btn.textContent = "Create account"; });
+  } else {
+    btn.disabled = true; btn.textContent = "Logging in…";
+    supa.auth.signInWithPassword({ email: email, password: password }).then(function(res){
+      if(res.error){ banner("Couldn't log in: " + res.error.message, true); return; }
+    }).finally(function(){ btn.disabled = false; btn.textContent = "Log in"; });
+  }
 };
 document.getElementById("authSignOutBtn").onclick = function(){ supa.auth.signOut(); };
 
