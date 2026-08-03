@@ -353,9 +353,9 @@ function loadAll(){
 }
 
 /* ---------------- check a place ---------------- */
-function gdeltCrimeCount(place){
+function gdeltCrimeCount(place, region){
   var terms = ["crime","shooting","robbery","assault","homicide","violence"];
-  var q = '"' + place + '" (' + terms.join(" OR ") + ")";
+  var q = '"' + place + '"' + (region ? ' "' + region + '"' : '') + ' (' + terms.join(" OR ") + ")";
   var url = "https://api.gdeltproject.org/api/v2/doc/doc?query=" + encodeURIComponent(q) +
             "&mode=artlist&maxrecords=50&format=json&timespan=1w";
   return fetch(url).then(function(r){ return r.text(); })
@@ -369,11 +369,13 @@ function checkPlace(){
   if(!q) return;
   var btn = document.getElementById("placeBtn");
   btn.disabled = true; btn.textContent = "Checking…";
-  fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q))
+  fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=" + encodeURIComponent(q))
     .then(function(r){ return r.json(); })
     .then(function(rows){
       if(!rows.length){ showVerdict("caution", "Couldn't find that place", "Try a more specific name, like \"City, Country\"."); return; }
       var lat = Number(rows[0].lat), lon = Number(rows[0].lon);
+      var addr = rows[0].address || {};
+      var region = addr.state || addr.region || addr.county || "";
       map.flyTo({center:[lon,lat], zoom:5, duration:800});
 
       if(checkMarker){ checkMarker.remove(); checkMarker = null; }
@@ -385,7 +387,7 @@ function checkPlace(){
         if(!nearestAny || d < nearestAny.d) nearestAny = {e:e, d:d};
       });
 
-      return gdeltCrimeCount(q).then(function(crimeCount){
+      return gdeltCrimeCount(q, region).then(function(crimeCount){
         var crimeNote = "";
         if(crimeCount > 0){
           crimeNote = " Also found " + crimeCount + " crime-related news article(s) mentioning this area in the past week (see the black marker — approximate location, not an exact incident spot).";

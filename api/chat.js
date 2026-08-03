@@ -63,7 +63,10 @@ module.exports = async (req, res) => {
       res.status(resp.status).json({ error: msg });
       return;
     }
-    const reply = (data.content && data.content[0] && data.content[0].text) || "(no reply)";
+    // Some responses include a leading "thinking" block before the actual text
+    // block, so content[0] isn't reliably the answer — find the text block instead.
+    const textBlock = Array.isArray(data.content) ? data.content.find(function (b) { return b.type === "text"; }) : null;
+    const reply = (textBlock && textBlock.text) || "(no reply)";
     res.status(200).json({ reply: reply });
   } catch (err) {
     res.status(500).json({ error: "Couldn't reach the chat service — try again in a moment." });

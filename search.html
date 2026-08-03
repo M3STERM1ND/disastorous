@@ -250,7 +250,7 @@ input[type=file]{width:100%;font-family:var(--f-mono);font-size:11px;margin-top:
     <div class="legend-box">
       <h6>Map key</h6>
       <div><i style="background:var(--info)"></i>Search area</div>
-      <div><i style="background:var(--danger)"></i>Active disaster nearby</div>
+      <div><i style="background:var(--danger)"></i>Disaster: confirmed nearby, or mentioned in news (click for detail)</div>
       <div><i style="background:var(--safe)"></i>Minor earthquake nearby</div>
       <div><i style="background:#14161A"></i>Crime news mentions (approximate)</div>
       <div><i style="background:var(--community)"></i>Community report</div>
@@ -380,27 +380,36 @@ function circlePolygon(lat,lon,radiusKm){
 
 /* ---------------- data fetchers ---------------- */
 function geocode(q){
-  var url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" + encodeURIComponent(q);
+  var url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=" + encodeURIComponent(q);
   return fetch(url).then(function(r){
     if(!r.ok) throw new Error("Location lookup failed (" + r.status + ")");
     return r.json();
   }).then(function(rows){
     if(!rows.length) throw new Error("Couldn't find that place. Try a more specific name, like \"City, State\" or \"City, Country\".");
-    return {lat:Number(rows[0].lat), lon:Number(rows[0].lon), label:rows[0].display_name};
+    var addr = rows[0].address || {};
+    return {
+      lat:Number(rows[0].lat), lon:Number(rows[0].lon), label:rows[0].display_name,
+      // used to disambiguate common place names (e.g. Fremont exists in CA, CO, NE, OH…) in news searches
+      region: addr.state || addr.region || addr.county || "",
+      country: addr.country || ""
+    };
   });
 }
 
 function sleep(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
 
 /* GDELT asks for at most one request every 5 seconds; retry once on a 429. */
-function gdeltSearch(place, terms, timespan, retriesLeft){
+/* `region` (state/county from the geocoder) is required alongside the place name so
+   a common name like "Fremont" (which exists in CA, CO, NE, OH…) doesn't match news
+   about a same-named place somewhere else entirely. */
+function gdeltSearch(place, region, terms, timespan, retriesLeft){
   if(retriesLeft === undefined) retriesLeft = 1;
-  var q = '"' + place + '" (' + terms.join(" OR ") + ")";
+  var q = '"' + place + '"' + (region ? ' "' + region + '"' : '') + ' (' + terms.join(" OR ") + ")";
   var url = "https://api.gdeltproject.org/api/v2/doc/doc?query=" + encodeURIComponent(q) +
             "&mode=artlist&maxrecords=50&format=json&timespan=" + timespan + "&sort=hybridrel";
   return fetch(url).then(function(r){
     if(r.status === 429 && retriesLeft > 0){
-      return sleep(5000).then(function(){ return gdeltSearch(place, terms, timespan, retriesLeft - 1); });
+      return sleep(5000).then(function(){ return gdeltSearch(place, region, terms, timespan, retriesLeft - 1); });
     }
     if(!r.ok) throw new Error("news search returned " + r.status);
     return r.text();
@@ -522,7 +531,7 @@ function renderScore(score, disasterN, crimeN, eonetN, quakes){
     "plus " + eonetN + " confirmed active event(s) and " + quakes.length + " earthquake(s) within your chosen radius.";
 }
 
-function paintMap(center, radiusKm, eonetEvents, quakes, crimeCount){
+function paintMap(center, radiusKm, eonetEvents, quakes, crimeCount, disasterCount){
   if(!mapReady) return;
   map.getSource("area").setData({
     type:"FeatureCollection",
@@ -539,14 +548,22 @@ function paintMap(center, radiusKm, eonetEvents, quakes, crimeCount){
       properties:{title:q.title,detail:q.distanceKm.toFixed(1)+" km away",url:q.url,
         color: q.mag >= 5 ? "#D93025" : "#1E8E5A", mag:q.mag}};
   }));
-  /* News search has no per-article coordinates, so this is one aggregate marker at the
-     searched place — not a claim about exactly where any incident happened. */
+  /* News search has no per-article coordinates, so these are one aggregate marker each at
+     the searched place — not a claim about exactly where any incident happened. Confirmed
+     locations (above) come from EONET/USGS instead, which do have real coordinates. */
   if(crimeCount > 0){
-    var offset = destPoint(center.lat, center.lon, 210, Math.min(radiusKm*0.15, 1.2));
-    feats.push({type:"Feature",geometry:{type:"Point",coordinates:offset},
+    var crimeOffset = destPoint(center.lat, center.lon, 210, Math.min(radiusKm*0.15, 1.2));
+    feats.push({type:"Feature",geometry:{type:"Point",coordinates:crimeOffset},
       properties:{title:crimeCount + " crime-related article(s) mention this area",
         detail:"Approximate — news search doesn't give exact incident locations. See Sources list for articles.",
         url:null, color:"#14161A", mag: Math.min(4, 2+crimeCount/10)}});
+  }
+  if(disasterCount > 0){
+    var disasterOffset = destPoint(center.lat, center.lon, 30, Math.min(radiusKm*0.15, 1.2));
+    feats.push({type:"Feature",geometry:{type:"Point",coordinates:disasterOffset},
+      properties:{title:disasterCount + " disaster-related article(s) mention this area",
+        detail:"Approximate — news search doesn't give exact incident locations. See Sources list for articles.",
+        url:null, color:"#D93025", mag: Math.min(4, 2+disasterCount/10)}});
   }
   map.getSource("events").setData({type:"FeatureCollection",features:feats});
 
@@ -569,11 +586,11 @@ function runSearch(){
     place = p;
     banner("Found " + place.label.split(",").slice(0,3).join(",") + " — searching disaster news…", false);
     // GDELT allows roughly one request per 5s, so these two run one after another, not in parallel.
-    return gdeltSearch(city, ["earthquake","wildfire","fire","flood","hurricane","tornado","storm","landslide","tsunami","eruption","disaster","evacuation"], "1w");
+    return gdeltSearch(city, place.region, ["earthquake","wildfire","fire","flood","hurricane","tornado","storm","landslide","tsunami","eruption","disaster","evacuation"], "1w");
   }).then(function(disasterArts){
     banner("Searching crime news…", false);
     return sleep(1200).then(function(){
-      return gdeltSearch(city, ["crime","shooting","robbery","assault","homicide","murder","stabbing","theft","burglary","violence"], "1w");
+      return gdeltSearch(city, place.region, ["crime","shooting","robbery","assault","homicide","murder","stabbing","theft","burglary","violence"], "1w");
     }).then(function(crimeArts){
       banner("Checking live hazard feeds…", false);
       return Promise.all([
@@ -588,7 +605,7 @@ function runSearch(){
     var score = computeScore(disasterArts.length, crimeArts.length, eonetEvents.length, quakes);
     renderScore(score, disasterArts.length, crimeArts.length, eonetEvents.length, quakes);
     renderSources(disasterArts, crimeArts, eonetEvents, quakes);
-    paintMap(place, radiusKm, eonetEvents, quakes, crimeArts.length);
+    paintMap(place, radiusKm, eonetEvents, quakes, crimeArts.length, disasterArts.length);
     lastSearch = {
       place: place, radiusKm: radiusKm, score: score,
       disasterArts: disasterArts, crimeArts: crimeArts, eonetEvents: eonetEvents, quakes: quakes
